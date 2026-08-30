@@ -1,0 +1,203 @@
+{
+  "dependency_neighborhood": {
+    "focus_node": {
+      "appid": "com.sale.quote.center",
+      "name": "报价中心",
+      "kind": "frontend_app",
+      "domain": "销售域",
+      "description": "报价页面/合同回跳入口"
+    },
+    "downstream_paths": [
+      {
+        "src": "com.sale.quote.center",
+        "dst": "com.sale.quote.core",
+        "relation": "sync_call",
+        "weight": 0.92,
+        "description": "页面提交/保存报价单",
+        "depth": 1,
+        "path": "com.sale.quote.center->com.sale.quote.core",
+        "src_name": "报价中心",
+        "dst_name": "报价核心服务",
+        "dst_kind": "service"
+      },
+      {
+        "src": "com.sale.quote.center",
+        "dst": "com.sale.contract.center",
+        "relation": "sync_call",
+        "weight": 0.65,
+        "description": "合同生成后回跳报价页面",
+        "depth": 1,
+        "path": "com.sale.quote.center->com.sale.contract.center",
+        "src_name": "报价中心",
+        "dst_name": "合同中心",
+        "dst_kind": "service"
+      },
+      {
+        "src": "com.sale.quote.center",
+        "dst": "iam.auth.gateway",
+        "relation": "sync_call",
+        "weight": 0.35,
+        "description": "权限校验",
+        "depth": 1,
+        "path": "com.sale.quote.center->iam.auth.gateway",
+        "src_name": "报价中心",
+        "dst_name": "统一认证网关",
+        "dst_kind": "gateway"
+      },
+      {
+        "src": "com.sale.quote.core",
+        "dst": "cache.quote.rule",
+        "relation": "cache_read",
+        "weight": 0.88,
+        "description": "读取报价规则缓存",
+        "depth": 2,
+        "path": "com.sale.quote.center->com.sale.quote.core->cache.quote.rule",
+        "src_name": "报价核心服务",
+        "dst_name": "报价规则缓存",
+        "dst_kind": "cache"
+      },
+      {
+        "src": "com.sale.quote.core",
+        "dst": "db.quote.mysql",
+        "relation": "db_read_write",
+        "weight": 0.74,
+        "description": "报价数据读写",
+        "depth": 2,
+        "path": "com.sale.quote.center->com.sale.quote.core->db.quote.mysql",
+        "src_name": "报价核心服务",
+        "dst_name": "报价库",
+        "dst_kind": "database"
+      },
+      {
+        "src": "com.sale.quote.core",
+        "dst": "com.crm.opportunity",
+        "relation": "sync_call",
+        "weight": 0.52,
+        "description": "读取商机上下文",
+        "depth": 2,
+        "path": "com.sale.quote.center->com.sale.quote.core->com.crm.opportunity",
+        "src_name": "报价核心服务",
+        "dst_name": "商机中心",
+        "dst_kind": "service"
+      },
+      {
+        "src": "com.sale.contract.center",
+        "dst": "com.sale.quote.core",
+        "relation": "sync_call",
+        "weight": 0.48,
+        "description": "合同金额校验",
+        "depth": 2,
+        "path": "com.sale.quote.center->com.sale.contract.center->com.sale.quote.core",
+        "src_name": "合同中心",
+        "dst_name": "报价核心服务",
+        "dst_kind": "service"
+      },
+      {
+        "src": "com.sale.quote.core",
+        "dst": "mq.sale.event",
+        "relation": "async_publish",
+        "weight": 0.31,
+        "description": "发布报价事件",
+        "depth": 2,
+        "path": "com.sale.quote.center->com.sale.quote.core->mq.sale.event",
+        "src_name": "报价核心服务",
+        "dst_name": "销售事件MQ",
+        "dst_kind": "mq"
+      }
+    ],
+    "upstream_edges": [],
+    "graph_store": "/Users/mjhorse/.openclaw/workspace/artifacts/it-occ-sensing-agent/agentscope-mvp/graph/it_occ_app_graph.sqlite"
+  },
+  "same_time_baseline": {
+    "time_bucket": "10:05-10:20",
+    "samples": [
+      {
+        "appid": "com.sale.quote.center",
+        "day_offset": 1,
+        "time_bucket": "10:05-10:20",
+        "p95_latency_ms": 690.0,
+        "error_rate": 0.011,
+        "request_count": 2420.0,
+        "note": "正常同时间段"
+      },
+      {
+        "appid": "com.sale.quote.center",
+        "day_offset": 2,
+        "time_bucket": "10:05-10:20",
+        "p95_latency_ms": 720.0,
+        "error_rate": 0.012,
+        "request_count": 2390.0,
+        "note": "正常同时间段"
+      },
+      {
+        "appid": "com.sale.quote.center",
+        "day_offset": 3,
+        "time_bucket": "10:05-10:20",
+        "p95_latency_ms": 660.0,
+        "error_rate": 0.01,
+        "request_count": 2510.0,
+        "note": "正常同时间段"
+      },
+      {
+        "appid": "com.sale.quote.center",
+        "day_offset": 4,
+        "time_bucket": "10:05-10:20",
+        "p95_latency_ms": 810.0,
+        "error_rate": 0.018,
+        "request_count": 2488.0,
+        "note": "轻微升高但无用户反馈"
+      },
+      {
+        "appid": "com.sale.quote.center",
+        "day_offset": 5,
+        "time_bucket": "10:05-10:20",
+        "p95_latency_ms": 645.0,
+        "error_rate": 0.011,
+        "request_count": 2375.0,
+        "note": "正常同时间段"
+      },
+      {
+        "appid": "com.sale.quote.center",
+        "day_offset": 6,
+        "time_bucket": "10:05-10:20",
+        "p95_latency_ms": 760.0,
+        "error_rate": 0.015,
+        "request_count": 2460.0,
+        "note": "轻微波动"
+      },
+      {
+        "appid": "com.sale.quote.center",
+        "day_offset": 7,
+        "time_bucket": "10:05-10:20",
+        "p95_latency_ms": 700.0,
+        "error_rate": 0.012,
+        "request_count": 2401.0,
+        "note": "正常同时间段"
+      }
+    ],
+    "stats": {
+      "p95_latency_ms": {
+        "current": 2066.0,
+        "baseline_avg": 712.143,
+        "baseline_std": 53.175,
+        "z_score": 25.46,
+        "ratio": 2.9
+      },
+      "error_rate": {
+        "current": 0.047,
+        "baseline_avg": 0.013,
+        "baseline_std": 0.003,
+        "z_score": 13.17,
+        "ratio": 3.7
+      },
+      "request_count": {
+        "current": 2520.0,
+        "baseline_avg": 2434.857,
+        "baseline_std": 47.906,
+        "z_score": 1.78,
+        "ratio": 1.03
+      }
+    },
+    "opinion": "P95 延迟显著高于最近7天同时间段均值，约为基线 2.9 倍。 错误率也高于历史同时间段，约为基线 3.7 倍。"
+  }
+}

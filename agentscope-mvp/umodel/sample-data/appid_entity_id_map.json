@@ -1,0 +1,13 @@
+{
+  "cache.quote.rule": "34b9ec72e7d8b96b9a515eceff2e4286",
+  "com.crm.opportunity": "d22615aa55f8e89951beeb6b0544d069",
+  "com.partner.api.gateway": "f26f59d142be77bdc77637ffdee1ba33",
+  "com.sale.contract.center": "58206b1c2bb5a25c9c6f2d1462c20eec",
+  "com.sale.mobile.app": "b82fc6fb069be295d8ddc649afc8b2b8",
+  "com.sale.order.portal": "2429d174458358fd345ffb911c9b92b6",
+  "com.sale.quote.center": "6220af5b738c9323109a4b97fc71b2a5",
+  "com.sale.quote.core": "393d37fefc49f2a2ec8f8a51dde10641",
+  "db.quote.mysql": "9b2ed93524c61c44e58cbf5300c8d694",
+  "iam.auth.gateway": "c0c192dcabf24ee531d72223681042ea",
+  "mq.sale.event": "41037ff58d39b1fc4aea4946408feb14"
+}

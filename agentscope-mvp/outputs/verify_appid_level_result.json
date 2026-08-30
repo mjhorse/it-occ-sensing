@@ -1,0 +1,299 @@
+{
+  "schema_version": "it_occ_agent_detail_view.v1",
+  "appid": "com.ops.alert.web",
+  "focus_event_id": "WARN-DYN-001",
+  "correlation_level": "strong",
+  "correlation_label": "关联较强",
+  "correlation_summary": "最近10分钟内，存在处理中告警、存在用户侧反馈、拓扑中存在调用当前预警 appid 的高疑似上游调用方，建议作为同一异常链路继续核对。",
+  "timeline_reasoning": [
+    {
+      "time": "T-7m",
+      "type": "alert",
+      "type_label": "告警",
+      "description": "告警运营台 P95 延迟超过阈值。",
+      "interpretation": "告警处于处理中，说明结构化监控侧仍未闭环。"
+    },
+    {
+      "time": "T+6m",
+      "type": "sd",
+      "type_label": "SD单",
+      "description": "SRE 反馈告警页面打开慢。",
+      "interpretation": "用户侧描述与性能下降方向一致，可作为影响证据。"
+    }
+  ],
+  "timeline_note": "已按预警时间前后10分钟筛选附近离散event；无匹配则显示‘无’。",
+  "nearby_event_window_minutes": 10,
+  "same_time_baseline": {
+    "time_bucket": "10:05-10:20",
+    "samples": [],
+    "opinion": "无历史同时间段样本，无法比较。"
+  },
+  "topology_dependency_analysis": {
+    "graph": {
+      "focus_node": {
+        "appid": "com.ops.alert.web",
+        "name": "告警运营台",
+        "kind": "appid",
+        "domain": "当前预警应用",
+        "description": "来自预警界面的当前 appid"
+      },
+      "inbound_paths": [
+        {
+          "src": "com.ops.warroom.query",
+          "dst": "com.ops.alert.web",
+          "relation": "调用",
+          "relation_label": "调用",
+          "weight": 0.92,
+          "description": "appid级影响推理：调用方指标/event 与被调用方预警同窗口异常",
+          "depth": 1,
+          "path": "com.ops.warroom.query->com.ops.alert.web",
+          "src_name": "战情查询台",
+          "dst_name": "告警运营台",
+          "src_kind": "appid",
+          "dst_kind": "appid",
+          "suspicion_score": 0.92,
+          "impact_probability": 92,
+          "reason": [
+            "告警运营台 同窗口存在预警/告警",
+            "战情查询台 错误率较基线/前序升高 1.8 倍",
+            "战情查询台 访问耗时较前序升高 2.1 倍",
+            "战情查询台 10分钟内存在 1 条离散event"
+          ]
+        },
+        {
+          "src": "com.ops.incident.api",
+          "dst": "com.ops.alert.web",
+          "relation": "调用",
+          "relation_label": "调用",
+          "weight": 0.66,
+          "description": "appid级影响推理：调用方指标/event 与被调用方预警同窗口异常",
+          "depth": 1,
+          "path": "com.ops.incident.api->com.ops.alert.web",
+          "src_name": "事件接口",
+          "dst_name": "告警运营台",
+          "src_kind": "appid",
+          "dst_kind": "appid",
+          "suspicion_score": 0.66,
+          "impact_probability": 66,
+          "reason": [
+            "告警运营台 同窗口存在预警/告警",
+            "事件接口 访问耗时较前序升高 1.6 倍"
+          ]
+        }
+      ],
+      "upstream_edges": [
+        {
+          "src": "com.ops.warroom.query",
+          "dst": "com.ops.alert.web",
+          "relation": "调用",
+          "relation_label": "调用",
+          "weight": 0.92,
+          "description": "appid级影响推理：调用方指标/event 与被调用方预警同窗口异常",
+          "depth": 1,
+          "path": "com.ops.warroom.query->com.ops.alert.web",
+          "src_name": "战情查询台",
+          "dst_name": "告警运营台",
+          "src_kind": "appid",
+          "dst_kind": "appid",
+          "suspicion_score": 0.92,
+          "impact_probability": 92,
+          "reason": [
+            "告警运营台 同窗口存在预警/告警",
+            "战情查询台 错误率较基线/前序升高 1.8 倍",
+            "战情查询台 访问耗时较前序升高 2.1 倍",
+            "战情查询台 10分钟内存在 1 条离散event"
+          ]
+        },
+        {
+          "src": "com.ops.incident.api",
+          "dst": "com.ops.alert.web",
+          "relation": "调用",
+          "relation_label": "调用",
+          "weight": 0.66,
+          "description": "appid级影响推理：调用方指标/event 与被调用方预警同窗口异常",
+          "depth": 1,
+          "path": "com.ops.incident.api->com.ops.alert.web",
+          "src_name": "事件接口",
+          "dst_name": "告警运营台",
+          "src_kind": "appid",
+          "dst_kind": "appid",
+          "suspicion_score": 0.66,
+          "impact_probability": 66,
+          "reason": [
+            "告警运营台 同窗口存在预警/告警",
+            "事件接口 访问耗时较前序升高 1.6 倍"
+          ]
+        }
+      ],
+      "downstream_paths": [],
+      "graph_view": "appid_level_inbound_impact",
+      "graph_store": "ui_payload_related_app_signals"
+    },
+    "topology_view": "appid级关联：调用方 appid → 预警 appid",
+    "suspected_dependency_paths": [
+      {
+        "src": "com.ops.warroom.query",
+        "dst": "com.ops.alert.web",
+        "relation": "调用",
+        "relation_label": "调用",
+        "weight": 0.92,
+        "description": "appid级影响推理：调用方指标/event 与被调用方预警同窗口异常",
+        "depth": 1,
+        "path": "com.ops.warroom.query->com.ops.alert.web",
+        "src_name": "战情查询台",
+        "dst_name": "告警运营台",
+        "src_kind": "appid",
+        "dst_kind": "appid",
+        "suspicion_score": 0.92,
+        "impact_probability": 92,
+        "reason": [
+          "告警运营台 同窗口存在预警/告警",
+          "战情查询台 错误率较基线/前序升高 1.8 倍",
+          "战情查询台 访问耗时较前序升高 2.1 倍",
+          "战情查询台 10分钟内存在 1 条离散event"
+        ]
+      },
+      {
+        "src": "com.ops.incident.api",
+        "dst": "com.ops.alert.web",
+        "relation": "调用",
+        "relation_label": "调用",
+        "weight": 0.66,
+        "description": "appid级影响推理：调用方指标/event 与被调用方预警同窗口异常",
+        "depth": 1,
+        "path": "com.ops.incident.api->com.ops.alert.web",
+        "src_name": "事件接口",
+        "dst_name": "告警运营台",
+        "src_kind": "appid",
+        "dst_kind": "appid",
+        "suspicion_score": 0.66,
+        "impact_probability": 66,
+        "reason": [
+          "告警运营台 同窗口存在预警/告警",
+          "事件接口 访问耗时较前序升高 1.6 倍"
+        ]
+      }
+    ],
+    "suspected_inbound_callers": [
+      {
+        "src": "com.ops.warroom.query",
+        "dst": "com.ops.alert.web",
+        "relation": "调用",
+        "relation_label": "调用",
+        "weight": 0.92,
+        "description": "appid级影响推理：调用方指标/event 与被调用方预警同窗口异常",
+        "depth": 1,
+        "path": "com.ops.warroom.query->com.ops.alert.web",
+        "src_name": "战情查询台",
+        "dst_name": "告警运营台",
+        "src_kind": "appid",
+        "dst_kind": "appid",
+        "suspicion_score": 0.92,
+        "impact_probability": 92,
+        "reason": [
+          "告警运营台 同窗口存在预警/告警",
+          "战情查询台 错误率较基线/前序升高 1.8 倍",
+          "战情查询台 访问耗时较前序升高 2.1 倍",
+          "战情查询台 10分钟内存在 1 条离散event"
+        ]
+      },
+      {
+        "src": "com.ops.incident.api",
+        "dst": "com.ops.alert.web",
+        "relation": "调用",
+        "relation_label": "调用",
+        "weight": 0.66,
+        "description": "appid级影响推理：调用方指标/event 与被调用方预警同窗口异常",
+        "depth": 1,
+        "path": "com.ops.incident.api->com.ops.alert.web",
+        "src_name": "事件接口",
+        "dst_name": "告警运营台",
+        "src_kind": "appid",
+        "dst_kind": "appid",
+        "suspicion_score": 0.66,
+        "impact_probability": 66,
+        "reason": [
+          "告警运营台 同窗口存在预警/告警",
+          "事件接口 访问耗时较前序升高 1.6 倍"
+        ]
+      }
+    ],
+    "downstream_root_cause_clues": [],
+    "topology_opinion": "战情查询台 → 告警运营台（调用，推断92%概率受影响）；事件接口 → 告警运营台（调用，推断66%概率受影响）",
+    "node_event_map": {
+      "com.ops.alert.web": [
+        {
+          "event_id": "SD-DYN-001",
+          "event_type": "sd",
+          "event_time": "2026-08-18T23:08:00+08:00",
+          "severity": "体验问题",
+          "status": "open",
+          "description": "SRE 反馈告警页面打开慢。",
+          "relation_to_focus": "当前预警 appid 的10分钟内附近离散event"
+        },
+        {
+          "event_id": "ALERT-DYN-001",
+          "event_type": "alert",
+          "event_time": "2026-08-18T22:55:00+08:00",
+          "severity": "严重",
+          "status": "处理中",
+          "description": "告警运营台 P95 延迟超过阈值。",
+          "relation_to_focus": "当前预警 appid 的10分钟内附近离散event"
+        }
+      ],
+      "com.ops.warroom.query": [
+        {
+          "event_id": "ALERT-B-001",
+          "event_type": "alert",
+          "event_time": "2026-08-18T23:04:00+08:00",
+          "severity": "严重",
+          "status": "处理中",
+          "description": "战情查询台访问超时，错误率陡增。",
+          "relation_to_focus": "关联 appid 的10分钟内附近离散event"
+        }
+      ],
+      "com.ops.incident.api": [
+        {
+          "event_id": "METRIC-com.ops.incident.api",
+          "event_type": "metric_anomaly",
+          "event_time": "2026-08-18T23:02:00+08:00",
+          "severity": "指标异常",
+          "status": "待确认",
+          "description": "同窗口指标升高但暂无离散event。",
+          "relation_to_focus": "关联 appid 的指标侧证据"
+        }
+      ]
+    },
+    "scope_note": "仅展示 appid 级关联，不展示 appid 内部组件。"
+  },
+  "matched_experience_rules": [],
+  "llm_semantic_interpretation": {
+    "focus_event_summary": "告警运营台页面访问变慢，预警置信度升高。",
+    "semantic_event_interpretation": [
+      {
+        "event_id": "SD-DYN-001",
+        "event_type": "sd",
+        "fault_relevance": "high",
+        "user_symptom_or_fact": "SRE 反馈告警页面打开慢。",
+        "semantic_reason": "该描述与当前关注信号在时间窗口内接近，且语义上指向性能下降、用户等待或处置承接。"
+      },
+      {
+        "event_id": "ALERT-DYN-001",
+        "event_type": "alert",
+        "fault_relevance": "medium",
+        "user_symptom_or_fact": "告警运营台 P95 延迟超过阈值。",
+        "semantic_reason": "该描述与当前关注信号在时间窗口内接近，且语义上指向性能下降、用户等待或处置承接。"
+      }
+    ],
+    "llm_note": "当前为本地fallback；真实 AgentScope LLM Agent 应基于此 schema 调用模型识别同义表达、反证和影响范围。"
+  },
+  "missing_inputs": [
+    "上游调用方实时错误率/时延"
+  ],
+  "suggested_next_actions": [
+    "查看appid级关联拓扑",
+    "确认上游调用方影响范围",
+    "确认事件单是否仍处理中",
+    "核对变更影响范围"
+  ]
+}

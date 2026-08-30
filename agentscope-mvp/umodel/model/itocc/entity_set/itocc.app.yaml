@@ -1,0 +1,87 @@
+kind: entity_set
+schema:
+  url: "umodel.aliyun.com"
+  version: "v0.1.0"
+metadata:
+  name: "itocc.app"
+  domain: itocc
+  display_name:
+    en_us: "IT OCC Application"
+    zh_cn: "IT OCC 应用"
+  description:
+    en_us: "An application, service, gateway, database, cache, MQ, or job observed by IT OCC."
+    zh_cn: "IT OCC 观测范围内的应用、服务、网关、数据库、缓存、MQ 或任务。"
+spec:
+  fields:
+    - name: id
+      type: string
+      display_name:
+        en_us: "ID"
+        zh_cn: "ID"
+      description:
+        en_us: "Stable UModel entity identifier."
+        zh_cn: "稳定的 UModel 实体标识。"
+    - name: appid
+      type: string
+      display_name:
+        en_us: "App ID"
+        zh_cn: "应用 ID"
+      description:
+        en_us: "Stable business appid used by warnings and topology edges."
+        zh_cn: "预警和拓扑边使用的稳定业务 appid。"
+    - name: display_name
+      type: string
+      display_name:
+        en_us: "Name"
+        zh_cn: "名称"
+      description:
+        en_us: "Human-readable application name."
+        zh_cn: "可读应用名称。"
+    - name: name
+      type: string
+      display_name:
+        en_us: "Short Name"
+        zh_cn: "简称"
+      description:
+        en_us: "Short application name."
+        zh_cn: "应用简称。"
+    - name: kind
+      type: string
+      display_name:
+        en_us: "Kind"
+        zh_cn: "类型"
+      description:
+        en_us: "Application kind such as service, gateway, database, cache, mq, frontend_app, mobile_app."
+        zh_cn: "应用类型，例如服务、网关、数据库、缓存、MQ、前端应用、移动端应用。"
+    - name: business_domain
+      type: string
+      display_name:
+        en_us: "Business Domain"
+        zh_cn: "业务域"
+      description:
+        en_us: "Business or platform domain."
+        zh_cn: "业务域或平台域。"
+    - name: description
+      type: string
+      display_name:
+        en_us: "Description"
+        zh_cn: "描述"
+      description:
+        en_us: "Application responsibility description."
+        zh_cn: "应用职责描述。"
+    - name: status
+      type: string
+      display_name:
+        en_us: "Status"
+        zh_cn: "状态"
+      description:
+        en_us: "Current lifecycle or operational status."
+        zh_cn: "当前生命周期或运行状态。"
+  primary_key_fields:
+    - id
+  id_generator: "id"
+  name_fields:
+    - display_name
+  ordered_fields: ["appid", "display_name", "kind", "business_domain", "status"]
+  first_observed_time_field: "__first_observed_time__"
+  last_observed_time_field: "__last_observed_time__"

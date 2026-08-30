@@ -1,0 +1,26 @@
+{
+  "schema_version": "it_occ_detail_analysis_pipeline_report.v1",
+  "stages": [
+    {
+      "name": "ContextCollectorAgent",
+      "status": "ok",
+      "summary": "收集到 5 个窗口内关联离散event。"
+    },
+    {
+      "name": "RuleExperienceAgent",
+      "status": "ok",
+      "summary": "命中 2 条详情经验规则。"
+    },
+    {
+      "name": "LLMInterpretationAgent",
+      "status": "ok",
+      "summary": "完成 5 个离散event的语义解释。"
+    },
+    {
+      "name": "CorrelationNarratorAgent",
+      "status": "ok",
+      "summary": "生成详情关联解读：关联较强。"
+    }
+  ],
+  "output": "outputs/sample_agent_detail_analysis_v1.json"
+}

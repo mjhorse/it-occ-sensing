@@ -1,0 +1,182 @@
+{
+  "schema_version": "it_occ_sensing_judgement_result.v2",
+  "judgement_id": "JDG-WARN-SIM-152200-CHANGE-LATENCY",
+  "candidate_id": "WARN-SIM-152200-CHANGE-LATENCY",
+  "appid": "com.sale.quote.center",
+  "judgement": "valid_high_confidence",
+  "confidence_level": "high",
+  "confidence_label": "高置信度",
+  "confidence_score": 0.9,
+  "confidence_explanation": "主展示采用高中低三档；数字分数仅作为详情补充。",
+  "confidence": 0.9,
+  "impact_level": "L2",
+  "should_trigger_warroom": true,
+  "timeline_summary": [
+    {
+      "phase": "T-30m~T",
+      "summary": "窗口内存在变更和用户侧反馈，且p95延迟持续升高。",
+      "signal_strength": "strong"
+    },
+    {
+      "phase": "T-24h baseline",
+      "summary": "相对昨日同时段基线偏离较明显，不像普通周期波动。",
+      "signal_strength": "medium"
+    }
+  ],
+  "topology_analysis": {
+    "impact_scope_level": "T2",
+    "impact_scope_label": "链路影响",
+    "root_cause_scope": "downstream_dependency",
+    "suspected_root_nodes": [
+      "cache.quote.rule"
+    ],
+    "affected_nodes": [
+      "com.sale.quote.center",
+      "com.sale.quote.core",
+      "com.sale.contract.core"
+    ],
+    "propagation_path": [
+      "cache.quote.rule",
+      "com.sale.quote.core",
+      "com.sale.quote.center"
+    ],
+    "why": [
+      "疑似源头节点 cache.quote.rule 在拓扑中位于当前应用下游依赖，且存在 recent_change/cache_miss 信号",
+      "多个相关节点同时退化，影响面超过单应用",
+      "异常传播路径与调用/依赖方向一致"
+    ],
+    "confidence_effect": {
+      "direction": "raise",
+      "delta": 0.1,
+      "reason": "拓扑传播链与异常时间顺序基本一致"
+    }
+  },
+  "experience_rule_evaluation": {
+    "matched_rules": [
+      {
+        "experience_id": "EXP-CHANGE-LATENCY-001",
+        "version": "v0.1",
+        "title": "变更后延迟升高 + 用户侧反馈",
+        "match_score": 0.94,
+        "match_level": "strong",
+        "why_matched": [
+          "T-12m存在变更事件：报价规则缓存参数发布",
+          "p95延迟持续异常，breach_points=4, latest=1850",
+          "T-3m出现用户侧反馈：报价页面提交很慢",
+          "请求量未显著低于基线，排除低流量比例噪音"
+        ],
+        "why_not_matched": [],
+        "conditions_satisfied": [
+          "change_in_last_30m",
+          "latency_sustained",
+          "voice_feedback_present",
+          "request_not_low"
+        ],
+        "conditions_missing": [],
+        "confidence_effect": {
+          "direction": "raise",
+          "default_delta": 0.15
+        },
+        "status": "draft"
+      },
+      {
+        "experience_id": "EXP-TOPO-DOWNSTREAM-PROPAGATION-001",
+        "version": "v0.1",
+        "title": "下游依赖异常向上游应用传播",
+        "match_score": 0.95,
+        "match_level": "strong",
+        "why_matched": [
+          "存在下游依赖到当前应用的传播路径：cache.quote.rule → com.sale.quote.core → com.sale.quote.center",
+          "疑似源头位于下游依赖节点",
+          "影响范围达到链路影响",
+          "变更/源头信号早于当前应用延迟升高"
+        ],
+        "why_not_matched": [],
+        "conditions_satisfied": [
+          "propagation_path_exists",
+          "downstream_root_scope",
+          "multi_node_impact",
+          "time_order_match"
+        ],
+        "conditions_missing": [],
+        "confidence_effect": {
+          "direction": "raise",
+          "default_delta": 0.1
+        },
+        "status": "draft"
+      }
+    ],
+    "unmatched_relevant_rules": [
+      {
+        "experience_id": "EXP-LOW-TRAFFIC-SPIKE-001",
+        "version": "v0.1",
+        "title": "低流量错误率尖刺",
+        "match_score": 0.0,
+        "match_level": "none",
+        "why_matched": [],
+        "why_not_matched": [
+          "request_below_baseline",
+          "error_rate_spike",
+          "no_voice_feedback",
+          "no_latency_sustained"
+        ],
+        "conditions_satisfied": [],
+        "conditions_missing": [
+          "request_below_baseline",
+          "error_rate_spike",
+          "no_voice_feedback",
+          "no_latency_sustained"
+        ],
+        "confidence_effect": {
+          "direction": "lower",
+          "default_delta": 0.2
+        },
+        "status": "draft"
+      },
+      {
+        "experience_id": "EXP-MAINTENANCE-WINDOW-001",
+        "version": "v0.1",
+        "title": "维护/压测窗口内指标异常",
+        "match_score": 0.0,
+        "match_level": "none",
+        "why_matched": [],
+        "why_not_matched": [
+          "maintenance_or_load_test_in_last_2h",
+          "no_user_impact_feedback"
+        ],
+        "conditions_satisfied": [],
+        "conditions_missing": [
+          "maintenance_or_load_test_in_last_2h",
+          "no_user_impact_feedback"
+        ],
+        "confidence_effect": {
+          "direction": "lower",
+          "default_delta": 0.25
+        },
+        "status": "draft"
+      }
+    ]
+  },
+  "evidence_for": [
+    "命中EXP-CHANGE-LATENCY-001：T-12m存在变更事件：报价规则缓存参数发布; p95延迟持续异常，breach_points=4, latest=1850; T-3m出现用户侧反馈：报价页面提交很慢; 请求量未显著低于基线，排除低流量比例噪音",
+    "命中EXP-TOPO-DOWNSTREAM-PROPAGATION-001：存在下游依赖到当前应用的传播路径：cache.quote.rule → com.sale.quote.core → com.sale.quote.center; 疑似源头位于下游依赖节点; 影响范围达到链路影响; 变更/源头信号早于当前应用延迟升高",
+    "拓扑影响分析：疑似源头节点 cache.quote.rule 在拓扑中位于当前应用下游依赖，且存在 recent_change/cache_miss 信号; 多个相关节点同时退化，影响面超过单应用; 异常传播路径与调用/依赖方向一致"
+  ],
+  "evidence_against": [],
+  "missing_inputs": [
+    "topology_dependency",
+    "downstream_dependency_status"
+  ],
+  "recommended_actions": [
+    {
+      "action": "notify_owner",
+      "mode": "dry_run",
+      "reason": "预警中高置信，建议应用Owner确认变更影响和下游依赖状态"
+    }
+  ],
+  "audit": {
+    "agent": "mock_agentscope_rule_evaluator",
+    "created_at": "2026-08-17T01:43:50.769352+00:00",
+    "knowledge_base_version": "it-occ-sensing-kb-v0.1"
+  }
+}

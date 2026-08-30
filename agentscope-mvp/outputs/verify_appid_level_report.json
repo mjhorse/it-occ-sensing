@@ -1,0 +1,31 @@
+{
+  "schema_version": "it_occ_detail_analysis_pipeline_report.v1",
+  "stages": [
+    {
+      "name": "ContextCollectorAgent",
+      "status": "ok",
+      "summary": "收集到 2 个10分钟内关联离散event，并完成最近几天同时间段对比。"
+    },
+    {
+      "name": "RuleExperienceAgent",
+      "status": "ok",
+      "summary": "命中 0 条详情经验规则。"
+    },
+    {
+      "name": "LLMInterpretationAgent",
+      "status": "ok",
+      "summary": "完成 2 个离散event的语义解释。"
+    },
+    {
+      "name": "TopologyDependencyAgent",
+      "status": "ok",
+      "summary": "基于页面传入的 appid 级指标/event识别 2 个关联 appid。"
+    },
+    {
+      "name": "CorrelationNarratorAgent",
+      "status": "ok",
+      "summary": "生成详情关联解读：关联较强。"
+    }
+  ],
+  "output": "outputs/verify_appid_level_result.json"
+}

@@ -1,0 +1,441 @@
+{
+  "schema_version": "it_occ_agent_detail_view.v1",
+  "appid": "com.ops.alert.web",
+  "focus_event_id": "WARN-DYN-001",
+  "correlation_level": "strong",
+  "correlation_label": "关联较强",
+  "correlation_summary": "最近10分钟内，存在处理中告警、存在用户侧反馈、拓扑中存在调用当前预警 appid 的高疑似上游调用方，建议作为同一异常链路继续核对。",
+  "timeline_reasoning": [
+    {
+      "time": "T-7m",
+      "type": "alert",
+      "type_label": "告警",
+      "description": "告警运营台 P95 延迟超过阈值。",
+      "interpretation": "告警处于处理中，说明结构化监控侧仍未闭环。"
+    },
+    {
+      "time": "T+6m",
+      "type": "sd",
+      "type_label": "SD单",
+      "description": "SRE 反馈告警页面打开慢。",
+      "interpretation": "用户侧描述与性能下降方向一致，可作为影响证据。"
+    }
+  ],
+  "timeline_note": "已按预警时间前后10分钟筛选附近离散event；无匹配则显示‘无’。",
+  "nearby_event_window_minutes": 10,
+  "same_time_baseline": {
+    "time_bucket": "10:05-10:20",
+    "samples": [],
+    "opinion": "无历史同时间段样本，无法比较。"
+  },
+  "topology_dependency_analysis": {
+    "graph": {
+      "focus_node": {
+        "appid": "com.ops.alert.web",
+        "name": "告警运营台",
+        "kind": "service",
+        "domain": "当前预警应用",
+        "description": "来自预警界面的当前 appid"
+      },
+      "downstream_paths": [
+        {
+          "src": "com.ops.alert.web",
+          "dst": "com.ops.alert.db",
+          "relation": "数据库读写",
+          "relation_label": "数据库读写",
+          "weight": 0.62,
+          "description": "当前预警 appid 的数据读写依赖",
+          "depth": 1,
+          "path": "com.ops.alert.web->com.ops.alert.db",
+          "src_name": "告警运营台",
+          "dst_name": "告警运营台-数据库",
+          "dst_kind": "database"
+        },
+        {
+          "src": "com.ops.alert.web",
+          "dst": "com.ops.alert.cache",
+          "relation": "读取缓存",
+          "relation_label": "读取缓存",
+          "weight": 0.58,
+          "description": "当前预警 appid 的缓存读取依赖",
+          "depth": 1,
+          "path": "com.ops.alert.web->com.ops.alert.cache",
+          "src_name": "告警运营台",
+          "dst_name": "告警运营台-缓存",
+          "dst_kind": "cache"
+        }
+      ],
+      "upstream_edges": [
+        {
+          "src": "com.ops.alert.web",
+          "dst": "com.ops.alert.web",
+          "relation": "同步调用",
+          "relation_label": "同步调用",
+          "weight": 0.78,
+          "description": "页面入口调用当前预警 appid",
+          "depth": 1,
+          "path": "com.ops.alert.web->com.ops.alert.web",
+          "src_name": "告警运营台-业务门户",
+          "dst_name": "告警运营台",
+          "src_kind": "frontend_app",
+          "dst_kind": "service"
+        },
+        {
+          "src": "com.ops.alert.mobile",
+          "dst": "com.ops.alert.web",
+          "relation": "同步调用",
+          "relation_label": "同步调用",
+          "weight": 0.7,
+          "description": "移动端入口调用当前预警 appid",
+          "depth": 1,
+          "path": "com.ops.alert.mobile->com.ops.alert.web",
+          "src_name": "告警运营台-移动端",
+          "dst_name": "告警运营台",
+          "src_kind": "mobile_app",
+          "dst_kind": "service"
+        },
+        {
+          "src": "com.ops.alert.open",
+          "dst": "com.ops.alert.web",
+          "relation": "接口调用",
+          "relation_label": "接口调用",
+          "weight": 0.62,
+          "description": "外部/伙伴渠道调用当前预警 appid",
+          "depth": 1,
+          "path": "com.ops.alert.open->com.ops.alert.web",
+          "src_name": "告警运营台-开放网关",
+          "dst_name": "告警运营台",
+          "src_kind": "gateway",
+          "dst_kind": "service"
+        },
+        {
+          "src": "com.ops.alert.job",
+          "dst": "com.ops.alert.web",
+          "relation": "定时调用",
+          "relation_label": "定时调用",
+          "weight": 0.54,
+          "description": "后台任务调用当前预警 appid",
+          "depth": 1,
+          "path": "com.ops.alert.job->com.ops.alert.web",
+          "src_name": "告警运营台-批处理任务",
+          "dst_name": "告警运营台",
+          "src_kind": "job",
+          "dst_kind": "service"
+        }
+      ],
+      "inbound_paths": [
+        {
+          "src": "com.ops.alert.web",
+          "dst": "com.ops.alert.web",
+          "relation": "同步调用",
+          "relation_label": "同步调用",
+          "weight": 0.78,
+          "description": "页面入口调用当前预警 appid",
+          "depth": 1,
+          "path": "com.ops.alert.web->com.ops.alert.web",
+          "src_name": "告警运营台-业务门户",
+          "dst_name": "告警运营台",
+          "src_kind": "frontend_app",
+          "dst_kind": "service"
+        },
+        {
+          "src": "com.ops.alert.mobile",
+          "dst": "com.ops.alert.web",
+          "relation": "同步调用",
+          "relation_label": "同步调用",
+          "weight": 0.7,
+          "description": "移动端入口调用当前预警 appid",
+          "depth": 1,
+          "path": "com.ops.alert.mobile->com.ops.alert.web",
+          "src_name": "告警运营台-移动端",
+          "dst_name": "告警运营台",
+          "src_kind": "mobile_app",
+          "dst_kind": "service"
+        },
+        {
+          "src": "com.ops.alert.open",
+          "dst": "com.ops.alert.web",
+          "relation": "接口调用",
+          "relation_label": "接口调用",
+          "weight": 0.62,
+          "description": "外部/伙伴渠道调用当前预警 appid",
+          "depth": 1,
+          "path": "com.ops.alert.open->com.ops.alert.web",
+          "src_name": "告警运营台-开放网关",
+          "dst_name": "告警运营台",
+          "src_kind": "gateway",
+          "dst_kind": "service"
+        },
+        {
+          "src": "com.ops.alert.job",
+          "dst": "com.ops.alert.web",
+          "relation": "定时调用",
+          "relation_label": "定时调用",
+          "weight": 0.54,
+          "description": "后台任务调用当前预警 appid",
+          "depth": 1,
+          "path": "com.ops.alert.job->com.ops.alert.web",
+          "src_name": "告警运营台-批处理任务",
+          "dst_name": "告警运营台",
+          "src_kind": "job",
+          "dst_kind": "service"
+        }
+      ],
+      "graph_view": "inbound_callers_centered_on_warning_appid",
+      "graph_store": "dynamic_from_warning_appid"
+    },
+    "topology_view": "被调用关系：调用方 → 中心预警 appid",
+    "suspected_dependency_paths": [
+      {
+        "src": "com.ops.alert.web",
+        "dst": "com.ops.alert.web",
+        "relation": "同步调用",
+        "relation_label": "同步调用",
+        "weight": 0.78,
+        "description": "页面入口调用当前预警 appid",
+        "depth": 1,
+        "path": "com.ops.alert.web->com.ops.alert.web",
+        "src_name": "告警运营台-业务门户",
+        "dst_name": "告警运营台",
+        "src_kind": "frontend_app",
+        "dst_kind": "service",
+        "suspicion_score": 0.84,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      },
+      {
+        "src": "com.ops.alert.mobile",
+        "dst": "com.ops.alert.web",
+        "relation": "同步调用",
+        "relation_label": "同步调用",
+        "weight": 0.7,
+        "description": "移动端入口调用当前预警 appid",
+        "depth": 1,
+        "path": "com.ops.alert.mobile->com.ops.alert.web",
+        "src_name": "告警运营台-移动端",
+        "dst_name": "告警运营台",
+        "src_kind": "mobile_app",
+        "dst_kind": "service",
+        "suspicion_score": 0.76,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      },
+      {
+        "src": "com.ops.alert.open",
+        "dst": "com.ops.alert.web",
+        "relation": "接口调用",
+        "relation_label": "接口调用",
+        "weight": 0.62,
+        "description": "外部/伙伴渠道调用当前预警 appid",
+        "depth": 1,
+        "path": "com.ops.alert.open->com.ops.alert.web",
+        "src_name": "告警运营台-开放网关",
+        "dst_name": "告警运营台",
+        "src_kind": "gateway",
+        "dst_kind": "service",
+        "suspicion_score": 0.68,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      },
+      {
+        "src": "com.ops.alert.job",
+        "dst": "com.ops.alert.web",
+        "relation": "定时调用",
+        "relation_label": "定时调用",
+        "weight": 0.54,
+        "description": "后台任务调用当前预警 appid",
+        "depth": 1,
+        "path": "com.ops.alert.job->com.ops.alert.web",
+        "src_name": "告警运营台-批处理任务",
+        "dst_name": "告警运营台",
+        "src_kind": "job",
+        "dst_kind": "service",
+        "suspicion_score": 0.6,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      }
+    ],
+    "suspected_inbound_callers": [
+      {
+        "src": "com.ops.alert.web",
+        "dst": "com.ops.alert.web",
+        "relation": "同步调用",
+        "relation_label": "同步调用",
+        "weight": 0.78,
+        "description": "页面入口调用当前预警 appid",
+        "depth": 1,
+        "path": "com.ops.alert.web->com.ops.alert.web",
+        "src_name": "告警运营台-业务门户",
+        "dst_name": "告警运营台",
+        "src_kind": "frontend_app",
+        "dst_kind": "service",
+        "suspicion_score": 0.84,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      },
+      {
+        "src": "com.ops.alert.mobile",
+        "dst": "com.ops.alert.web",
+        "relation": "同步调用",
+        "relation_label": "同步调用",
+        "weight": 0.7,
+        "description": "移动端入口调用当前预警 appid",
+        "depth": 1,
+        "path": "com.ops.alert.mobile->com.ops.alert.web",
+        "src_name": "告警运营台-移动端",
+        "dst_name": "告警运营台",
+        "src_kind": "mobile_app",
+        "dst_kind": "service",
+        "suspicion_score": 0.76,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      },
+      {
+        "src": "com.ops.alert.open",
+        "dst": "com.ops.alert.web",
+        "relation": "接口调用",
+        "relation_label": "接口调用",
+        "weight": 0.62,
+        "description": "外部/伙伴渠道调用当前预警 appid",
+        "depth": 1,
+        "path": "com.ops.alert.open->com.ops.alert.web",
+        "src_name": "告警运营台-开放网关",
+        "dst_name": "告警运营台",
+        "src_kind": "gateway",
+        "dst_kind": "service",
+        "suspicion_score": 0.68,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      },
+      {
+        "src": "com.ops.alert.job",
+        "dst": "com.ops.alert.web",
+        "relation": "定时调用",
+        "relation_label": "定时调用",
+        "weight": 0.54,
+        "description": "后台任务调用当前预警 appid",
+        "depth": 1,
+        "path": "com.ops.alert.job->com.ops.alert.web",
+        "src_name": "告警运营台-批处理任务",
+        "dst_name": "告警运营台",
+        "src_kind": "job",
+        "dst_kind": "service",
+        "suspicion_score": 0.6,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      }
+    ],
+    "downstream_root_cause_clues": [],
+    "topology_opinion": "告警运营台-业务门户 → 告警运营台（同步调用）；告警运营台-移动端 → 告警运营台（同步调用）；告警运营台-开放网关 → 告警运营台（接口调用）；告警运营台-批处理任务 → 告警运营台（定时调用）",
+    "node_event_map": {
+      "com.ops.alert.web": [
+        {
+          "event_id": "SD-DYN-001",
+          "event_type": "sd",
+          "event_time": "2026-08-18T23:08:00+08:00",
+          "severity": "体验问题",
+          "status": "open",
+          "description": "SRE 反馈告警页面打开慢。",
+          "relation_to_focus": "中心预警 appid 的原始关联 event"
+        },
+        {
+          "event_id": "ALERT-DYN-001",
+          "event_type": "alert",
+          "event_time": "2026-08-18T22:55:00+08:00",
+          "severity": "严重",
+          "status": "处理中",
+          "description": "告警运营台 P95 延迟超过阈值。",
+          "relation_to_focus": "中心预警 appid 的原始关联 event"
+        },
+        {
+          "event_id": "TOPO-com.ops.alert.web",
+          "event_type": "topology_call_impact",
+          "event_time": "2026-08-18T22:55:00+08:00",
+          "severity": "影响研判",
+          "status": "待确认",
+          "description": "告警运营台-业务门户 调用/依赖中心预警 appid，关系：同步调用；页面入口调用当前预警 appid",
+          "relation_to_focus": "调用方 → 中心预警 appid，被调用关系证据"
+        }
+      ],
+      "com.ops.alert.mobile": [
+        {
+          "event_id": "TOPO-com.ops.alert.mobile",
+          "event_type": "topology_call_impact",
+          "event_time": "2026-08-18T22:55:00+08:00",
+          "severity": "影响研判",
+          "status": "待确认",
+          "description": "告警运营台-移动端 调用/依赖中心预警 appid，关系：同步调用；移动端入口调用当前预警 appid",
+          "relation_to_focus": "调用方 → 中心预警 appid，被调用关系证据"
+        }
+      ],
+      "com.ops.alert.open": [
+        {
+          "event_id": "TOPO-com.ops.alert.open",
+          "event_type": "topology_call_impact",
+          "event_time": "2026-08-18T22:55:00+08:00",
+          "severity": "影响研判",
+          "status": "待确认",
+          "description": "告警运营台-开放网关 调用/依赖中心预警 appid，关系：接口调用；外部/伙伴渠道调用当前预警 appid",
+          "relation_to_focus": "调用方 → 中心预警 appid，被调用关系证据"
+        }
+      ],
+      "com.ops.alert.job": [
+        {
+          "event_id": "TOPO-com.ops.alert.job",
+          "event_type": "topology_call_impact",
+          "event_time": "2026-08-18T22:55:00+08:00",
+          "severity": "影响研判",
+          "status": "待确认",
+          "description": "告警运营台-批处理任务 调用/依赖中心预警 appid，关系：定时调用；后台任务调用当前预警 appid",
+          "relation_to_focus": "调用方 → 中心预警 appid，被调用关系证据"
+        }
+      ]
+    }
+  },
+  "matched_experience_rules": [],
+  "llm_semantic_interpretation": {
+    "focus_event_summary": "告警运营台页面访问变慢，预警置信度升高。",
+    "semantic_event_interpretation": [
+      {
+        "event_id": "SD-DYN-001",
+        "event_type": "sd",
+        "fault_relevance": "high",
+        "user_symptom_or_fact": "SRE 反馈告警页面打开慢。",
+        "semantic_reason": "该描述与当前关注信号在时间窗口内接近，且语义上指向性能下降、用户等待或处置承接。"
+      },
+      {
+        "event_id": "ALERT-DYN-001",
+        "event_type": "alert",
+        "fault_relevance": "medium",
+        "user_symptom_or_fact": "告警运营台 P95 延迟超过阈值。",
+        "semantic_reason": "该描述与当前关注信号在时间窗口内接近，且语义上指向性能下降、用户等待或处置承接。"
+      }
+    ],
+    "llm_note": "当前为本地fallback；真实 AgentScope LLM Agent 应基于此 schema 调用模型识别同义表达、反证和影响范围。"
+  },
+  "missing_inputs": [
+    "上游调用方实时错误率/时延"
+  ],
+  "suggested_next_actions": [
+    "查看被调用关系拓扑",
+    "确认上游调用方影响范围",
+    "确认事件单是否仍处理中",
+    "核对变更影响范围"
+  ]
+}

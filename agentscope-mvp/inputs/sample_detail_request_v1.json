@@ -1,0 +1,77 @@
+{
+  "schema_version": "it_occ_agent_detail_request.v1",
+  "appid": "com.sale.quote.center",
+  "app_name": "报价中心",
+  "lookback_window_minutes": 10,
+  "focus_event": {
+    "event_id": "VOICE-900123",
+    "event_type": "voice_feedback",
+    "event_time": "2026-08-17T10:13:21+08:00",
+    "severity": "体验问题",
+    "description": "合同生成成功了，但回到报价单页面特别慢，客户在电话里等着确认金额。"
+  },
+  "metrics_window": {
+    "p95_latency_ms": {
+      "latest": 2066,
+      "baseline": 640,
+      "trend": "up_then_plateau",
+      "breach_points": 8
+    },
+    "error_rate": {
+      "latest": 0.047,
+      "threshold": 0.08,
+      "trend": "flat",
+      "breach_points": 0
+    },
+    "request_count": {
+      "latest": 2520,
+      "baseline": 2380,
+      "trend": "normal"
+    }
+  },
+  "discrete_events": [
+    {
+      "event_id": "CHG-900101",
+      "event_type": "change",
+      "event_time": "2026-08-17T10:09:40+08:00",
+      "description": "报价规则缓存参数发布",
+      "severity": "已完成"
+    },
+    {
+      "event_id": "ALERT-900118",
+      "event_type": "alert",
+      "event_time": "2026-08-17T10:11:28+08:00",
+      "description": "报价中心 P95 延迟连续超过 1000ms",
+      "severity": "严重",
+      "status": "处理中"
+    },
+    {
+      "event_id": "SD-900121",
+      "event_type": "sd",
+      "event_time": "2026-08-17T10:12:36+08:00",
+      "description": "销售反馈报价单保存后页面长时间无响应，客户现场等待确认金额。",
+      "severity": "体验问题"
+    },
+    {
+      "event_id": "VOICE-900123",
+      "event_type": "voice_feedback",
+      "event_time": "2026-08-17T10:13:21+08:00",
+      "description": "合同生成成功了，但回到报价单页面特别慢，客户在电话里等着确认金额。",
+      "severity": "体验问题"
+    },
+    {
+      "event_id": "INC-900125",
+      "event_type": "event_ticket",
+      "event_time": "2026-08-17T10:14:02+08:00",
+      "description": "报价链路响应时间升高，事件单已受理，报价中心和缓存平台联合排查。",
+      "severity": "P2",
+      "status": "处理中"
+    }
+  ],
+  "topology_context": {
+    "focus_node": "com.sale.quote.center",
+    "suspected_nodes": ["com.sale.quote.core", "cache.quote.rule"],
+    "propagation_path": ["cache.quote.rule", "com.sale.quote.core", "com.sale.quote.center"],
+    "missing_inputs": ["cache.quote.rule 实时命中率", "事件单关闭原因"]
+  }
+}

@@ -1,0 +1,23 @@
+kind: entity_set_link
+schema:
+  url: "umodel.aliyun.com"
+  version: "v0.1.0"
+metadata:
+  name: "itocc.app_db_read_write_itocc.app"
+  domain: itocc
+  display_name:
+    en_us: "Application db_read_write Application"
+    zh_cn: "应用数据库读写应用"
+  description:
+    en_us: "A directed IT OCC application topology relation: caller/dependent source points to called/dependency destination."
+    zh_cn: "IT OCC 应用拓扑有向关系：调用方/依赖方 src 指向被调用方/依赖目标 dest。"
+spec:
+  src:
+    domain: itocc
+    kind: entity_set
+    name: itocc.app
+  dest:
+    domain: itocc
+    kind: entity_set
+    name: itocc.app
+  entity_link_type: db_read_write

@@ -1,0 +1,25 @@
+{
+  "schema_version": "it_occ_agent_detail_request.v2",
+  "appid": "com.ops.alert.web",
+  "app_name": "告警运营台",
+  "lookback_window_minutes": 10,
+  "focus_event": {
+    "event_id": "WARN-DYN-001",
+    "event_type": "warning",
+    "event_time": "2026-08-18T23:02:00+08:00",
+    "severity": "严重",
+    "status": "处理中",
+    "description": "告警运营台页面访问变慢，预警置信度升高。"
+  },
+  "metrics_window": {
+    "p95_latency_ms": {"latest": 1420, "baseline": 680, "trend": "up"},
+    "error_rate": {"latest": 0.021, "threshold": 0.08, "trend": "flat"},
+    "request_count": {"latest": 1880, "baseline": 1760, "trend": "normal"}
+  },
+  "discrete_events": [
+    {"event_id":"ALERT-DYN-001","event_type":"alert","event_time":"2026-08-18T22:55:00+08:00","severity":"严重","status":"处理中","description":"告警运营台 P95 延迟超过阈值。"},
+    {"event_id":"SD-DYN-001","event_type":"sd","event_time":"2026-08-18T23:08:00+08:00","severity":"体验问题","status":"open","description":"SRE 反馈告警页面打开慢。"},
+    {"event_id":"OLD-DYN-001","event_type":"change","event_time":"2026-08-18T22:40:00+08:00","severity":"已完成","status":"closed","description":"20分钟前的变更，不应进入附近离散event。"}
+  ],
+  "topology_context": {"focus_node":"com.ops.alert.web","missing_inputs":["上游调用方实时错误率/时延"]}
+}

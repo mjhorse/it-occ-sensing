@@ -1,0 +1,22 @@
+{
+  "feedback_id": "FB-WARN-SIM-152200-TOPO-001",
+  "candidate_id": "WARN-SIM-152200-CHANGE-LATENCY",
+  "judgement_id": "JDG-WARN-SIM-152200-CHANGE-LATENCY",
+  "topology_feedback": {
+    "source_node_accuracy": "correct",
+    "impact_scope_accuracy": "correct",
+    "actual_root_nodes": ["cache.quote.rule"],
+    "actual_affected_nodes": ["com.sale.quote.center", "com.sale.quote.core", "com.sale.contract.core"],
+    "human_reason": "缓存参数发布后，报价核心与报价中心均出现延迟升高，传播路径和时间顺序一致。"
+  },
+  "rule_feedback": [
+    {
+      "experience_id": "EXP-TOPO-DOWNSTREAM-PROPAGATION-001",
+      "version": "v0.1",
+      "agent_match_status": "matched",
+      "human_feedback": "match_correct",
+      "reason": "下游依赖先异常，随后上游应用延迟升高，命中准确。"
+    }
+  ],
+  "created_at": "2026-08-16T19:22:00+08:00"
+}

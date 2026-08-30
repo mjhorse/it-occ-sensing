@@ -1,0 +1,55 @@
+{
+  "schema_version": "it_occ_agent_detail_view.v1",
+  "purpose": "支撑用户在时间轴详情中查看 Agent 对最近一段时间关联性的解读",
+  "entrypoint": "用户在离散event/时间点弹窗点击展开详情",
+  "request": {
+    "appid": "com.sale.quote.center",
+    "focus_event": {
+      "event_id": "VOICE-900123",
+      "event_type": "voice_feedback",
+      "event_time": "2026-08-17T10:13:21+08:00",
+      "description": "合同生成成功了，但回到报价单页面特别慢，客户在电话里等着确认金额。"
+    },
+    "lookback_window_minutes": 5,
+    "inputs": {
+      "metrics": ["error_rate", "p95_latency_ms", "request_count"],
+      "discrete_events": ["alerts", "sd", "forum", "changes", "event_tickets", "warnings"],
+      "experience_rules": true,
+      "topology_context": true,
+      "same_period_baseline": true
+    }
+  },
+  "response": {
+    "correlation_level": "strong|medium|weak|none",
+    "correlation_summary": "最近5分钟内，P95延迟持续升高，同时出现用户侧反馈和变更记录，疑似同一条异常链路。",
+    "timeline_reasoning": [
+      {
+        "time": "T-4m",
+        "type": "change",
+        "description": "报价规则缓存参数发布",
+        "interpretation": "变更发生在延迟升高之前，可作为候选诱因。"
+      },
+      {
+        "time": "T-2m",
+        "type": "alert",
+        "description": "P95延迟超过阈值",
+        "interpretation": "结构化监控确认性能异常。"
+      },
+      {
+        "time": "T-1m",
+        "type": "voice_feedback",
+        "description": "用户反馈报价页面提交很慢",
+        "interpretation": "用户侧症状与延迟指标方向一致。"
+      }
+    ],
+    "matched_experience_rules": [
+      {
+        "experience_id": "EXP-CHANGE-LATENCY-001",
+        "title": "变更后延迟升高 + 用户侧反馈",
+        "why": "变更、延迟升高、用户反馈在同一时间窗口内出现。"
+      }
+    ],
+    "missing_inputs": ["下游依赖实时健康状态"],
+    "suggested_next_actions": ["查看拓扑传播链", "确认变更影响范围", "检查对应事件单是否仍处理中"]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": "it_occ_sensing_agentscope_pipeline_report.v1",
+  "runtime": "local_agent_fallback",
+  "agentscope_package_available": true,
+  "stages": [
+    {
+      "name": "CandidateReaderAgent",
+      "status": "ok",
+      "summary": "读取候选预警 WARN-SIM-152200-CHANGE-LATENCY，当前快照包含 2 个离散event。",
+      "artifact": "inputs/sample_candidate_v2.json"
+    },
+    {
+      "name": "RuleEvaluatorAgent",
+      "status": "ok",
+      "summary": "完成规则判读，置信度 高置信度(0.9)，命中 2 条经验规则。",
+      "artifact": "outputs/sample_judgement_v2.json"
+    },
+    {
+      "name": "LLMInterpretationAgent",
+      "status": "ok",
+      "summary": "已生成 LLM 规则解读 prompt，并用本地fallback产出语义解释；真实LLM接入后用于泛化非结构化event。",
+      "artifact": "outputs/llm_rule_interpretation_prompt_v1.json"
+    },
+    {
+      "name": "EvidenceNarratorAgent",
+      "status": "ok",
+      "summary": "生成面向用户的证据说明，覆盖 2 个离散event。",
+      "artifact": "outputs/sample_evidence_narrative_v1.json"
+    },
+    {
+      "name": "FeedbackLearningAgent",
+      "status": "skipped",
+      "summary": "未提供人工反馈，跳过经验规则统计回写。",
+      "artifact": null
+    }
+  ]
+}

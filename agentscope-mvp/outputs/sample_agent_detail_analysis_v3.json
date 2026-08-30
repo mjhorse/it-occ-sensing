@@ -1,0 +1,732 @@
+{
+  "schema_version": "it_occ_agent_detail_view.v1",
+  "appid": "com.sale.quote.center",
+  "focus_event_id": "VOICE-900123",
+  "correlation_level": "strong",
+  "correlation_label": "关联较强",
+  "correlation_summary": "最近10分钟内，存在处理中告警、存在用户侧反馈、前序存在变更、已有事件单承接、显著高于最近几天同时间段基线、拓扑中存在调用当前预警 appid 的高疑似上游调用方，建议作为同一异常链路继续核对。",
+  "timeline_reasoning": [
+    {
+      "time": "T-4m",
+      "type": "change",
+      "type_label": "变更",
+      "description": "报价规则缓存参数发布",
+      "interpretation": "变更发生在关注信号之前，可作为候选诱因。"
+    },
+    {
+      "time": "T-2m",
+      "type": "alert",
+      "type_label": "告警",
+      "description": "报价中心 P95 延迟连续超过 1000ms",
+      "interpretation": "告警处于处理中，说明结构化监控侧仍未闭环。"
+    },
+    {
+      "time": "T-1m",
+      "type": "sd",
+      "type_label": "SD单",
+      "description": "销售反馈报价单保存后页面长时间无响应，客户现场等待确认金额。",
+      "interpretation": "用户侧描述与性能下降方向一致，可作为影响证据。"
+    },
+    {
+      "time": "T",
+      "type": "voice_feedback",
+      "type_label": "心声舆情",
+      "description": "合同生成成功了，但回到报价单页面特别慢，客户在电话里等着确认金额。",
+      "interpretation": "用户侧描述与性能下降方向一致，可作为影响证据。"
+    },
+    {
+      "time": "T+1m",
+      "type": "event_ticket",
+      "type_label": "事件单",
+      "description": "报价链路响应时间升高，事件单已受理，报价中心和缓存平台联合排查。",
+      "interpretation": "事件单承接处置，需继续关注是否关闭及关闭原因。"
+    }
+  ],
+  "timeline_note": "已按预警时间前后10分钟筛选附近离散event；无匹配则显示‘无’。",
+  "nearby_event_window_minutes": 10,
+  "same_time_baseline": {
+    "time_bucket": "10:05-10:20",
+    "samples": [
+      {
+        "appid": "com.sale.quote.center",
+        "day_offset": 1,
+        "time_bucket": "10:05-10:20",
+        "p95_latency_ms": 690.0,
+        "error_rate": 0.011,
+        "request_count": 2420.0,
+        "note": "正常同时间段"
+      },
+      {
+        "appid": "com.sale.quote.center",
+        "day_offset": 2,
+        "time_bucket": "10:05-10:20",
+        "p95_latency_ms": 720.0,
+        "error_rate": 0.012,
+        "request_count": 2390.0,
+        "note": "正常同时间段"
+      },
+      {
+        "appid": "com.sale.quote.center",
+        "day_offset": 3,
+        "time_bucket": "10:05-10:20",
+        "p95_latency_ms": 660.0,
+        "error_rate": 0.01,
+        "request_count": 2510.0,
+        "note": "正常同时间段"
+      },
+      {
+        "appid": "com.sale.quote.center",
+        "day_offset": 4,
+        "time_bucket": "10:05-10:20",
+        "p95_latency_ms": 810.0,
+        "error_rate": 0.018,
+        "request_count": 2488.0,
+        "note": "轻微升高但无用户反馈"
+      },
+      {
+        "appid": "com.sale.quote.center",
+        "day_offset": 5,
+        "time_bucket": "10:05-10:20",
+        "p95_latency_ms": 645.0,
+        "error_rate": 0.011,
+        "request_count": 2375.0,
+        "note": "正常同时间段"
+      },
+      {
+        "appid": "com.sale.quote.center",
+        "day_offset": 6,
+        "time_bucket": "10:05-10:20",
+        "p95_latency_ms": 760.0,
+        "error_rate": 0.015,
+        "request_count": 2460.0,
+        "note": "轻微波动"
+      },
+      {
+        "appid": "com.sale.quote.center",
+        "day_offset": 7,
+        "time_bucket": "10:05-10:20",
+        "p95_latency_ms": 700.0,
+        "error_rate": 0.012,
+        "request_count": 2401.0,
+        "note": "正常同时间段"
+      }
+    ],
+    "stats": {
+      "p95_latency_ms": {
+        "current": 2066.0,
+        "baseline_avg": 712.143,
+        "baseline_std": 53.175,
+        "z_score": 25.46,
+        "ratio": 2.9
+      },
+      "error_rate": {
+        "current": 0.047,
+        "baseline_avg": 0.013,
+        "baseline_std": 0.003,
+        "z_score": 13.17,
+        "ratio": 3.7
+      },
+      "request_count": {
+        "current": 2520.0,
+        "baseline_avg": 2434.857,
+        "baseline_std": 47.906,
+        "z_score": 1.78,
+        "ratio": 1.03
+      }
+    },
+    "opinion": "P95 延迟显著高于最近7天同时间段均值，约为基线 2.9 倍。 错误率也高于历史同时间段，约为基线 3.7 倍。"
+  },
+  "topology_dependency_analysis": {
+    "graph": {
+      "focus_node": {
+        "appid": "com.sale.quote.center",
+        "name": "报价中心",
+        "kind": "frontend_app",
+        "domain": "销售域",
+        "description": "报价页面/合同回跳入口"
+      },
+      "downstream_paths": [
+        {
+          "src": "com.sale.quote.center",
+          "dst": "com.sale.quote.core",
+          "relation": "同步调用",
+          "weight": 0.92,
+          "description": "页面提交/保存报价单",
+          "depth": 1,
+          "path": "com.sale.quote.center->com.sale.quote.core",
+          "src_name": "报价中心",
+          "dst_name": "报价核心服务",
+          "dst_kind": "service",
+          "relation_label": "同步调用"
+        },
+        {
+          "src": "com.sale.quote.center",
+          "dst": "com.sale.contract.center",
+          "relation": "同步调用",
+          "weight": 0.65,
+          "description": "合同生成后回跳报价页面",
+          "depth": 1,
+          "path": "com.sale.quote.center->com.sale.contract.center",
+          "src_name": "报价中心",
+          "dst_name": "合同中心",
+          "dst_kind": "service",
+          "relation_label": "同步调用"
+        },
+        {
+          "src": "com.sale.quote.center",
+          "dst": "iam.auth.gateway",
+          "relation": "同步调用",
+          "weight": 0.35,
+          "description": "权限校验",
+          "depth": 1,
+          "path": "com.sale.quote.center->iam.auth.gateway",
+          "src_name": "报价中心",
+          "dst_name": "统一认证网关",
+          "dst_kind": "gateway",
+          "relation_label": "同步调用"
+        },
+        {
+          "src": "com.sale.quote.core",
+          "dst": "cache.quote.rule",
+          "relation": "读取缓存",
+          "weight": 0.88,
+          "description": "读取报价规则缓存",
+          "depth": 2,
+          "path": "com.sale.quote.center->com.sale.quote.core->cache.quote.rule",
+          "src_name": "报价核心服务",
+          "dst_name": "报价规则缓存",
+          "dst_kind": "cache",
+          "relation_label": "读取缓存"
+        },
+        {
+          "src": "com.sale.quote.core",
+          "dst": "db.quote.mysql",
+          "relation": "数据库读写",
+          "weight": 0.74,
+          "description": "报价数据读写",
+          "depth": 2,
+          "path": "com.sale.quote.center->com.sale.quote.core->db.quote.mysql",
+          "src_name": "报价核心服务",
+          "dst_name": "报价库",
+          "dst_kind": "database",
+          "relation_label": "数据库读写"
+        },
+        {
+          "src": "com.sale.quote.core",
+          "dst": "com.crm.opportunity",
+          "relation": "同步调用",
+          "weight": 0.52,
+          "description": "读取商机上下文",
+          "depth": 2,
+          "path": "com.sale.quote.center->com.sale.quote.core->com.crm.opportunity",
+          "src_name": "报价核心服务",
+          "dst_name": "商机中心",
+          "dst_kind": "service",
+          "relation_label": "同步调用"
+        },
+        {
+          "src": "com.sale.contract.center",
+          "dst": "com.sale.quote.core",
+          "relation": "同步调用",
+          "weight": 0.48,
+          "description": "合同金额校验",
+          "depth": 2,
+          "path": "com.sale.quote.center->com.sale.contract.center->com.sale.quote.core",
+          "src_name": "合同中心",
+          "dst_name": "报价核心服务",
+          "dst_kind": "service",
+          "relation_label": "同步调用"
+        },
+        {
+          "src": "com.sale.quote.core",
+          "dst": "mq.sale.event",
+          "relation": "异步发布",
+          "weight": 0.31,
+          "description": "发布报价事件",
+          "depth": 2,
+          "path": "com.sale.quote.center->com.sale.quote.core->mq.sale.event",
+          "src_name": "报价核心服务",
+          "dst_name": "销售事件MQ",
+          "dst_kind": "mq",
+          "relation_label": "异步发布"
+        }
+      ],
+      "upstream_edges": [
+        {
+          "src": "com.sale.order.portal",
+          "dst": "com.sale.quote.center",
+          "relation": "同步调用",
+          "weight": 0.76,
+          "description": "订单页面嵌入报价组件",
+          "src_name": "订单门户",
+          "dst_name": "报价中心",
+          "relation_label": "同步调用"
+        },
+        {
+          "src": "com.sale.mobile.app",
+          "dst": "com.sale.quote.center",
+          "relation": "同步调用",
+          "weight": 0.68,
+          "description": "移动端发起报价保存",
+          "src_name": "销售移动端",
+          "dst_name": "报价中心",
+          "relation_label": "同步调用"
+        },
+        {
+          "src": "com.partner.api.gateway",
+          "dst": "com.sale.quote.center",
+          "relation": "接口调用",
+          "weight": 0.57,
+          "description": "伙伴渠道调用报价能力",
+          "src_name": "伙伴开放网关",
+          "dst_name": "报价中心",
+          "relation_label": "接口调用"
+        },
+        {
+          "src": "com.sale.contract.center",
+          "dst": "com.sale.quote.center",
+          "relation": "回跳调用",
+          "weight": 0.52,
+          "description": "合同生成后回跳报价页面",
+          "src_name": "合同中心",
+          "dst_name": "报价中心",
+          "relation_label": "回跳调用"
+        }
+      ],
+      "inbound_paths": [
+        {
+          "src": "com.sale.order.portal",
+          "dst": "com.sale.quote.center",
+          "relation": "同步调用",
+          "weight": 0.76,
+          "description": "订单页面嵌入报价组件",
+          "depth": 1,
+          "path": "com.sale.order.portal->com.sale.quote.center",
+          "src_name": "订单门户",
+          "dst_name": "报价中心",
+          "src_kind": "frontend_app",
+          "dst_kind": "frontend_app",
+          "relation_label": "同步调用"
+        },
+        {
+          "src": "com.sale.mobile.app",
+          "dst": "com.sale.quote.center",
+          "relation": "同步调用",
+          "weight": 0.68,
+          "description": "移动端发起报价保存",
+          "depth": 1,
+          "path": "com.sale.mobile.app->com.sale.quote.center",
+          "src_name": "销售移动端",
+          "dst_name": "报价中心",
+          "src_kind": "mobile_app",
+          "dst_kind": "frontend_app",
+          "relation_label": "同步调用"
+        },
+        {
+          "src": "com.partner.api.gateway",
+          "dst": "com.sale.quote.center",
+          "relation": "接口调用",
+          "weight": 0.57,
+          "description": "伙伴渠道调用报价能力",
+          "depth": 1,
+          "path": "com.partner.api.gateway->com.sale.quote.center",
+          "src_name": "伙伴开放网关",
+          "dst_name": "报价中心",
+          "src_kind": "gateway",
+          "dst_kind": "frontend_app",
+          "relation_label": "接口调用"
+        },
+        {
+          "src": "com.sale.contract.center",
+          "dst": "com.sale.quote.center",
+          "relation": "回跳调用",
+          "weight": 0.52,
+          "description": "合同生成后回跳报价页面",
+          "depth": 1,
+          "path": "com.sale.contract.center->com.sale.quote.center",
+          "src_name": "合同中心",
+          "dst_name": "报价中心",
+          "src_kind": "service",
+          "dst_kind": "frontend_app",
+          "relation_label": "回跳调用"
+        }
+      ],
+      "graph_view": "inbound_callers_centered_on_warning_appid",
+      "graph_store": "/Users/mjhorse/.openclaw/workspace/artifacts/it-occ-sensing-agent/agentscope-mvp/graph/it_occ_app_graph.sqlite"
+    },
+    "topology_view": "被调用关系：调用方 → 中心预警 appid",
+    "suspected_dependency_paths": [
+      {
+        "src": "com.sale.order.portal",
+        "dst": "com.sale.quote.center",
+        "relation": "同步调用",
+        "weight": 0.76,
+        "description": "订单页面嵌入报价组件",
+        "depth": 1,
+        "path": "com.sale.order.portal->com.sale.quote.center",
+        "src_name": "订单门户",
+        "dst_name": "报价中心",
+        "src_kind": "frontend_app",
+        "dst_kind": "frontend_app",
+        "relation_label": "同步调用",
+        "suspicion_score": 0.82,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      },
+      {
+        "src": "com.sale.contract.center",
+        "dst": "com.sale.quote.center",
+        "relation": "回跳调用",
+        "weight": 0.52,
+        "description": "合同生成后回跳报价页面",
+        "depth": 1,
+        "path": "com.sale.contract.center->com.sale.quote.center",
+        "src_name": "合同中心",
+        "dst_name": "报价中心",
+        "src_kind": "service",
+        "dst_kind": "frontend_app",
+        "relation_label": "回跳调用",
+        "suspicion_score": 0.76,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "事件描述包含合同/回跳线索，调用方业务相关",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      },
+      {
+        "src": "com.sale.mobile.app",
+        "dst": "com.sale.quote.center",
+        "relation": "同步调用",
+        "weight": 0.68,
+        "description": "移动端发起报价保存",
+        "depth": 1,
+        "path": "com.sale.mobile.app->com.sale.quote.center",
+        "src_name": "销售移动端",
+        "dst_name": "报价中心",
+        "src_kind": "mobile_app",
+        "dst_kind": "frontend_app",
+        "relation_label": "同步调用",
+        "suspicion_score": 0.74,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      },
+      {
+        "src": "com.partner.api.gateway",
+        "dst": "com.sale.quote.center",
+        "relation": "接口调用",
+        "weight": 0.57,
+        "description": "伙伴渠道调用报价能力",
+        "depth": 1,
+        "path": "com.partner.api.gateway->com.sale.quote.center",
+        "src_name": "伙伴开放网关",
+        "dst_name": "报价中心",
+        "src_kind": "gateway",
+        "dst_kind": "frontend_app",
+        "relation_label": "接口调用",
+        "suspicion_score": 0.63,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      }
+    ],
+    "suspected_inbound_callers": [
+      {
+        "src": "com.sale.order.portal",
+        "dst": "com.sale.quote.center",
+        "relation": "同步调用",
+        "weight": 0.76,
+        "description": "订单页面嵌入报价组件",
+        "depth": 1,
+        "path": "com.sale.order.portal->com.sale.quote.center",
+        "src_name": "订单门户",
+        "dst_name": "报价中心",
+        "src_kind": "frontend_app",
+        "dst_kind": "frontend_app",
+        "relation_label": "同步调用",
+        "suspicion_score": 0.82,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      },
+      {
+        "src": "com.sale.contract.center",
+        "dst": "com.sale.quote.center",
+        "relation": "回跳调用",
+        "weight": 0.52,
+        "description": "合同生成后回跳报价页面",
+        "depth": 1,
+        "path": "com.sale.contract.center->com.sale.quote.center",
+        "src_name": "合同中心",
+        "dst_name": "报价中心",
+        "src_kind": "service",
+        "dst_kind": "frontend_app",
+        "relation_label": "回跳调用",
+        "suspicion_score": 0.76,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "事件描述包含合同/回跳线索，调用方业务相关",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      },
+      {
+        "src": "com.sale.mobile.app",
+        "dst": "com.sale.quote.center",
+        "relation": "同步调用",
+        "weight": 0.68,
+        "description": "移动端发起报价保存",
+        "depth": 1,
+        "path": "com.sale.mobile.app->com.sale.quote.center",
+        "src_name": "销售移动端",
+        "dst_name": "报价中心",
+        "src_kind": "mobile_app",
+        "dst_kind": "frontend_app",
+        "relation_label": "同步调用",
+        "suspicion_score": 0.74,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      },
+      {
+        "src": "com.partner.api.gateway",
+        "dst": "com.sale.quote.center",
+        "relation": "接口调用",
+        "weight": 0.57,
+        "description": "伙伴渠道调用报价能力",
+        "depth": 1,
+        "path": "com.partner.api.gateway->com.sale.quote.center",
+        "src_name": "伙伴开放网关",
+        "dst_name": "报价中心",
+        "src_kind": "gateway",
+        "dst_kind": "frontend_app",
+        "relation_label": "接口调用",
+        "suspicion_score": 0.63,
+        "reason": [
+          "被调用关系：该节点调用/依赖当前预警 appid",
+          "中心 appid 性能退化可能被上游调用方感知"
+        ]
+      }
+    ],
+    "downstream_root_cause_clues": [
+      {
+        "src": "com.sale.quote.center",
+        "dst": "com.sale.quote.core",
+        "relation": "同步调用",
+        "weight": 0.92,
+        "description": "页面提交/保存报价单",
+        "depth": 1,
+        "path": "com.sale.quote.center->com.sale.quote.core",
+        "src_name": "报价中心",
+        "dst_name": "报价核心服务",
+        "dst_kind": "service",
+        "relation_label": "同步调用",
+        "suspicion_score": 0.92,
+        "reason": [
+          "中心 appid 下游依赖，作为根因排查线索"
+        ]
+      },
+      {
+        "src": "com.sale.quote.core",
+        "dst": "cache.quote.rule",
+        "relation": "读取缓存",
+        "weight": 0.88,
+        "description": "读取报价规则缓存",
+        "depth": 2,
+        "path": "com.sale.quote.center->com.sale.quote.core->cache.quote.rule",
+        "src_name": "报价核心服务",
+        "dst_name": "报价规则缓存",
+        "dst_kind": "cache",
+        "relation_label": "读取缓存",
+        "suspicion_score": 1.13,
+        "reason": [
+          "事件描述包含缓存相关线索"
+        ]
+      }
+    ],
+    "topology_opinion": "订单门户 → 报价中心（同步调用）；合同中心 → 报价中心（回跳调用）；销售移动端 → 报价中心（同步调用）；伙伴开放网关 → 报价中心（接口调用）",
+    "node_event_map": {
+      "com.sale.quote.center": [
+        {
+          "event_id": "VOICE-900123",
+          "event_type": "voice_feedback",
+          "event_time": "2026-08-17T10:13:21+08:00",
+          "severity": "体验问题",
+          "status": null,
+          "description": "合同生成成功了，但回到报价单页面特别慢，客户在电话里等着确认金额。",
+          "relation_to_focus": "中心预警 appid 的原始关联 event"
+        },
+        {
+          "event_id": "SD-900121",
+          "event_type": "sd",
+          "event_time": "2026-08-17T10:12:36+08:00",
+          "severity": "体验问题",
+          "status": null,
+          "description": "销售反馈报价单保存后页面长时间无响应，客户现场等待确认金额。",
+          "relation_to_focus": "中心预警 appid 的原始关联 event"
+        },
+        {
+          "event_id": "INC-900125",
+          "event_type": "event_ticket",
+          "event_time": "2026-08-17T10:14:02+08:00",
+          "severity": "P2",
+          "status": "处理中",
+          "description": "报价链路响应时间升高，事件单已受理，报价中心和缓存平台联合排查。",
+          "relation_to_focus": "中心预警 appid 的原始关联 event"
+        },
+        {
+          "event_id": "ALERT-900118",
+          "event_type": "alert",
+          "event_time": "2026-08-17T10:11:28+08:00",
+          "severity": "严重",
+          "status": "处理中",
+          "description": "报价中心 P95 延迟连续超过 1000ms",
+          "relation_to_focus": "中心预警 appid 的原始关联 event"
+        },
+        {
+          "event_id": "CHG-900101",
+          "event_type": "change",
+          "event_time": "2026-08-17T10:09:40+08:00",
+          "severity": "已完成",
+          "status": null,
+          "description": "报价规则缓存参数发布",
+          "relation_to_focus": "中心预警 appid 的原始关联 event"
+        }
+      ],
+      "com.sale.order.portal": [
+        {
+          "event_id": "TOPO-com.sale.order.portal",
+          "event_type": "topology_call_impact",
+          "event_time": "2026-08-17T10:09:40+08:00",
+          "severity": "影响研判",
+          "status": "待确认",
+          "description": "订单门户 调用/依赖中心预警 appid，关系：同步调用；订单页面嵌入报价组件",
+          "relation_to_focus": "调用方 → 中心预警 appid，被调用关系证据"
+        }
+      ],
+      "com.sale.contract.center": [
+        {
+          "event_id": "TOPO-com.sale.contract.center",
+          "event_type": "topology_call_impact",
+          "event_time": "2026-08-17T10:09:40+08:00",
+          "severity": "影响研判",
+          "status": "待确认",
+          "description": "合同中心 调用/依赖中心预警 appid，关系：回跳调用；合同生成后回跳报价页面",
+          "relation_to_focus": "调用方 → 中心预警 appid，被调用关系证据"
+        }
+      ],
+      "com.sale.mobile.app": [
+        {
+          "event_id": "TOPO-com.sale.mobile.app",
+          "event_type": "topology_call_impact",
+          "event_time": "2026-08-17T10:09:40+08:00",
+          "severity": "影响研判",
+          "status": "待确认",
+          "description": "销售移动端 调用/依赖中心预警 appid，关系：同步调用；移动端发起报价保存",
+          "relation_to_focus": "调用方 → 中心预警 appid，被调用关系证据"
+        }
+      ],
+      "com.partner.api.gateway": [
+        {
+          "event_id": "TOPO-com.partner.api.gateway",
+          "event_type": "topology_call_impact",
+          "event_time": "2026-08-17T10:09:40+08:00",
+          "severity": "影响研判",
+          "status": "待确认",
+          "description": "伙伴开放网关 调用/依赖中心预警 appid，关系：接口调用；伙伴渠道调用报价能力",
+          "relation_to_focus": "调用方 → 中心预警 appid，被调用关系证据"
+        }
+      ],
+      "com.sale.quote.core": [
+        {
+          "event_id": "ROOT-com.sale.quote.core",
+          "event_type": "downstream_root_cause_clue",
+          "event_time": "2026-08-17T10:13:21+08:00",
+          "severity": "根因线索",
+          "status": "待确认",
+          "description": "报价核心服务 是中心 appid 下游依赖，页面提交/保存报价单",
+          "relation_to_focus": "辅助根因线索，不作为主图被调用语义"
+        }
+      ],
+      "cache.quote.rule": [
+        {
+          "event_id": "ROOT-cache.quote.rule",
+          "event_type": "downstream_root_cause_clue",
+          "event_time": "2026-08-17T10:13:21+08:00",
+          "severity": "根因线索",
+          "status": "待确认",
+          "description": "报价规则缓存 是中心 appid 下游依赖，读取报价规则缓存",
+          "relation_to_focus": "辅助根因线索，不作为主图被调用语义"
+        }
+      ]
+    }
+  },
+  "matched_experience_rules": [
+    {
+      "experience_id": "EXP-CHANGE-LATENCY-001",
+      "title": "变更后延迟升高 + 用户侧反馈",
+      "why": "变更、延迟升高、用户反馈在同一时间窗口内出现。"
+    },
+    {
+      "experience_id": "EXP-ALERT-INCIDENT-LINK-001",
+      "title": "告警由事件单承接",
+      "why": "告警仍为处理中，且窗口内存在处理中的事件单。"
+    }
+  ],
+  "llm_semantic_interpretation": {
+    "focus_event_summary": "合同生成成功了，但回到报价单页面特别慢，客户在电话里等着确认金额。",
+    "semantic_event_interpretation": [
+      {
+        "event_id": "VOICE-900123",
+        "event_type": "voice_feedback",
+        "fault_relevance": "high",
+        "user_symptom_or_fact": "合同生成成功了，但回到报价单页面特别慢，客户在电话里等着确认金额。",
+        "semantic_reason": "该描述与当前关注信号在时间窗口内接近，且语义上指向性能下降、用户等待或处置承接。"
+      },
+      {
+        "event_id": "SD-900121",
+        "event_type": "sd",
+        "fault_relevance": "high",
+        "user_symptom_or_fact": "销售反馈报价单保存后页面长时间无响应，客户现场等待确认金额。",
+        "semantic_reason": "该描述与当前关注信号在时间窗口内接近，且语义上指向性能下降、用户等待或处置承接。"
+      },
+      {
+        "event_id": "INC-900125",
+        "event_type": "event_ticket",
+        "fault_relevance": "high",
+        "user_symptom_or_fact": "报价链路响应时间升高，事件单已受理，报价中心和缓存平台联合排查。",
+        "semantic_reason": "该描述与当前关注信号在时间窗口内接近，且语义上指向性能下降、用户等待或处置承接。"
+      },
+      {
+        "event_id": "ALERT-900118",
+        "event_type": "alert",
+        "fault_relevance": "medium",
+        "user_symptom_or_fact": "报价中心 P95 延迟连续超过 1000ms",
+        "semantic_reason": "该描述与当前关注信号在时间窗口内接近，且语义上指向性能下降、用户等待或处置承接。"
+      },
+      {
+        "event_id": "CHG-900101",
+        "event_type": "change",
+        "fault_relevance": "medium",
+        "user_symptom_or_fact": "报价规则缓存参数发布",
+        "semantic_reason": "该描述与当前关注信号在时间窗口内接近，且语义上指向性能下降、用户等待或处置承接。"
+      }
+    ],
+    "llm_note": "当前为本地fallback；真实 AgentScope LLM Agent 应基于此 schema 调用模型识别同义表达、反证和影响范围。"
+  },
+  "missing_inputs": [
+    "cache.quote.rule 实时命中率",
+    "事件单关闭原因"
+  ],
+  "suggested_next_actions": [
+    "查看被调用关系拓扑",
+    "确认上游调用方影响范围",
+    "确认事件单是否仍处理中",
+    "核对变更影响范围"
+  ]
+}

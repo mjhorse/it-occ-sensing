@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.pyc
+runtime/
+inputs/tmp*.json
+outputs/*latest*.json
+.DS_Store

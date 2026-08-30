@@ -1,0 +1,31 @@
+{
+  "feedback_id": "FB-WARN-SIM-152200-001",
+  "candidate_id": "WARN-SIM-152200-CHANGE-LATENCY",
+  "judgement_id": "JDG-WARN-SIM-152200-CHANGE-LATENCY",
+  "final_label": "attention_needed",
+  "agent_conclusion_accuracy": "correct",
+  "rule_feedback": [
+    {
+      "experience_id": "EXP-CHANGE-LATENCY-001",
+      "version": "v0.1",
+      "agent_match_status": "matched",
+      "human_feedback": "match_correct",
+      "reason": "变更后延迟升高并出现用户侧反馈，虽然未确认真实故障，但确实需要关注。"
+    },
+    {
+      "experience_id": "EXP-LOW-TRAFFIC-SPIKE-001",
+      "version": "v0.1",
+      "agent_match_status": "unmatched",
+      "human_feedback": "unmatch_correct",
+      "reason": "请求量正常，不属于低流量错误率尖刺。"
+    }
+  ],
+  "human_reason": "应用Owner确认变更后缓存参数导致报价提交延迟，回滚后恢复。",
+  "kb_update_suggestion": {
+    "action": "keep_rule_and_add_case",
+    "target_experience_id": "EXP-CHANGE-LATENCY-001",
+    "suggestion": "补充一个变更后延迟升高的真实关注案例。"
+  },
+  "reviewer": "human",
+  "created_at": "2026-08-16T16:33:00+08:00"
+}

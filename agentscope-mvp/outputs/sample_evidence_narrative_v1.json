@@ -1,0 +1,64 @@
+{
+  "candidate_id": "WARN-SIM-152200-CHANGE-LATENCY",
+  "appid": "com.sale.quote.center",
+  "concept_note": "event 是所有离散信息点的总称；事件单 event_ticket 只是 event 的一种。",
+  "user_readable_evidence": [
+    {
+      "event_type": "change",
+      "time_offset_min": -12,
+      "description": "报价规则缓存参数发布"
+    },
+    {
+      "event_type": "voice_feedback",
+      "time_offset_min": -3,
+      "description": "报价页面提交很慢"
+    }
+  ],
+  "judgement_summary": {
+    "label": "高置信度",
+    "score": 0.9,
+    "recommended_actions": [
+      {
+        "action": "notify_owner",
+        "mode": "dry_run",
+        "reason": "预警中高置信，建议应用Owner确认变更影响和下游依赖状态"
+      }
+    ]
+  },
+  "llm_semantic_interpretation": {
+    "semantic_event_interpretation": [
+      {
+        "event_type": "change",
+        "user_symptom": "报价规则缓存参数发布",
+        "fault_relevance": "medium",
+        "mapped_rule_evidence": [
+          "EXP-CHANGE-LATENCY-001:user_feedback/change"
+        ],
+        "reasoning_short": "本地fallback仅做关键词和类型映射；真实泛化场景应交由LLM判断语义、同义表达和反证。"
+      },
+      {
+        "event_type": "voice_feedback",
+        "user_symptom": "报价页面提交很慢",
+        "fault_relevance": "high",
+        "mapped_rule_evidence": [
+          "EXP-CHANGE-LATENCY-001:user_feedback/change"
+        ],
+        "reasoning_short": "本地fallback仅做关键词和类型映射；真实泛化场景应交由LLM判断语义、同义表达和反证。"
+      }
+    ],
+    "rule_interpretation": {
+      "matched_experience_rules": [
+        "EXP-CHANGE-LATENCY-001",
+        "EXP-TOPO-DOWNSTREAM-PROPAGATION-001"
+      ],
+      "counter_evidence": [],
+      "missing_inputs": [
+        "topology_dependency",
+        "downstream_dependency_status"
+      ],
+      "confidence_adjustment_suggestion": "none",
+      "confidence_adjustment_reason": "未调用真实LLM，本地fallback不改写确定性规则置信度。"
+    },
+    "user_facing_narrative": "规则侧已给出结构化判读；非结构化文本需要由LLM进一步识别用户症状、影响范围、同义表达和反证，当前为本地fallback说明。"
+  }
+}

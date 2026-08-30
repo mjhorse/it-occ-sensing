@@ -1,0 +1,201 @@
+{
+  "schema_version": "it_occ_sensing_candidate.v3",
+  "candidate_id": "WARN-SIM-152200-CHANGE-LATENCY",
+  "appid": "com.sale.quote.center",
+  "app_name": "报价中心",
+  "candidate_time": "2026-08-16T15:22:00+08:00",
+  "rule_trigger": {
+    "rules_hit": [
+      "metric_latency_rule",
+      "change_correlation_rule"
+    ],
+    "trigger_reason": "p95延迟持续高于阈值，且15分钟内存在变更事件"
+  },
+  "current_snapshot": {
+    "metrics": {
+      "p95_latency_ms": {
+        "latest": 1850,
+        "threshold": 1000,
+        "breach_points": 4,
+        "trend": "up"
+      },
+      "error_rate": {
+        "latest": 0.065,
+        "threshold": 0.08,
+        "breach_points": 0,
+        "trend": "flat"
+      },
+      "request_count": {
+        "latest": 2380,
+        "baseline": 2200,
+        "trend": "normal"
+      }
+    },
+    "events_nearby": [
+      {
+        "type": "change",
+        "time_offset_min": -12,
+        "title": "报价规则缓存参数发布"
+      },
+      {
+        "type": "voice_feedback",
+        "time_offset_min": -3,
+        "title": "报价页面提交很慢"
+      }
+    ]
+  },
+  "historical_windows": {
+    "last_5m": {
+      "metrics_summary": {
+        "p95_latency_ms": {
+          "breach_points": 4,
+          "trend": "up"
+        },
+        "request_count": {
+          "relative_to_baseline": "normal"
+        }
+      },
+      "events": [
+        {
+          "type": "voice_feedback",
+          "time_offset_min": -3,
+          "title": "报价页面提交很慢"
+        }
+      ]
+    },
+    "last_30m": {
+      "metrics_summary": {
+        "p95_latency_ms": {
+          "breach_points": 7,
+          "trend": "up_then_plateau"
+        },
+        "error_rate": {
+          "breach_points": 0,
+          "trend": "flat"
+        }
+      },
+      "events": [
+        {
+          "type": "change",
+          "time_offset_min": -12,
+          "title": "报价规则缓存参数发布"
+        },
+        {
+          "type": "voice_feedback",
+          "time_offset_min": -3,
+          "title": "报价页面提交很慢"
+        }
+      ]
+    },
+    "last_2h": {
+      "metrics_summary": {
+        "p95_latency_ms": {
+          "baseline": 620,
+          "current_window_avg": 1410
+        }
+      },
+      "events": []
+    },
+    "same_period_baseline_24h": {
+      "metrics_baseline": {
+        "p95_latency_ms": 640,
+        "request_count": 2200
+      },
+      "anomaly_score": 0.72
+    }
+  },
+  "retrieval_context": {
+    "appid_profile_key": "com.sale.quote.center",
+    "metric_keys": [
+      "p95_latency_ms",
+      "error_rate",
+      "request_count"
+    ],
+    "event_patterns": [
+      "change_before_warning",
+      "voice_feedback_after_latency"
+    ]
+  },
+  "topology_context": {
+    "focus_node": "com.sale.quote.center",
+    "graph_version": "topology-2026-08-16-v1",
+    "time_window": "last_30m",
+    "nodes": [
+      {
+        "node_id": "com.sale.quote.center",
+        "node_type": "application",
+        "role": "focus",
+        "domain": "销售",
+        "owner_team": "报价中心团队",
+        "health": "degraded",
+        "signals": [
+          "latency_sustained",
+          "voice_feedback"
+        ]
+      },
+      {
+        "node_id": "com.sale.quote.core",
+        "node_type": "application",
+        "role": "downstream",
+        "domain": "销售",
+        "owner_team": "报价核心团队",
+        "health": "degraded",
+        "signals": [
+          "p95_latency_up"
+        ]
+      },
+      {
+        "node_id": "cache.quote.rule",
+        "node_type": "middleware",
+        "role": "downstream_dependency",
+        "domain": "公共能力",
+        "owner_team": "缓存平台团队",
+        "health": "suspect",
+        "signals": [
+          "recent_change",
+          "cache_miss_up"
+        ]
+      },
+      {
+        "node_id": "com.sale.contract.core",
+        "node_type": "application",
+        "role": "affected_peer",
+        "domain": "销售",
+        "owner_team": "合同核心团队",
+        "health": "slightly_degraded",
+        "signals": [
+          "latency_up_weak"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "from": "com.sale.quote.center",
+        "to": "com.sale.quote.core",
+        "relation": "sync_call",
+        "criticality": "high",
+        "observed_effect": "latency_propagation"
+      },
+      {
+        "from": "com.sale.quote.core",
+        "to": "cache.quote.rule",
+        "relation": "cache_dependency",
+        "criticality": "high",
+        "observed_effect": "change_before_latency"
+      },
+      {
+        "from": "com.sale.contract.core",
+        "to": "cache.quote.rule",
+        "relation": "cache_dependency",
+        "criticality": "medium",
+        "observed_effect": "weak_latency_propagation"
+      }
+    ],
+    "blast_radius": {
+      "affected_node_count": 3,
+      "affected_domain_count": 1,
+      "critical_path_affected": true,
+      "estimated_user_impact": "partial"
+    }
+  }
+}

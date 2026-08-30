@@ -1,0 +1,31 @@
+{
+  "schema_version": "it_occ_detail_analysis_pipeline_report.v1",
+  "stages": [
+    {
+      "name": "ContextCollectorAgent",
+      "status": "ok",
+      "summary": "收集到 2 个10分钟内关联离散event，并完成最近几天同时间段对比。"
+    },
+    {
+      "name": "RuleExperienceAgent",
+      "status": "ok",
+      "summary": "命中 0 条详情经验规则。"
+    },
+    {
+      "name": "LLMInterpretationAgent",
+      "status": "ok",
+      "summary": "完成 2 个离散event的语义解释。"
+    },
+    {
+      "name": "TopologyDependencyAgent",
+      "status": "ok",
+      "summary": "查询图数据库并识别 4 个上游调用方。"
+    },
+    {
+      "name": "CorrelationNarratorAgent",
+      "status": "ok",
+      "summary": "生成详情关联解读：关联较强。"
+    }
+  ],
+  "output": "outputs/verify_dynamic_ui_result.json"
+}

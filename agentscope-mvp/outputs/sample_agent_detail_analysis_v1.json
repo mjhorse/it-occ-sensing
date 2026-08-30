@@ -1,0 +1,107 @@
+{
+  "schema_version": "it_occ_agent_detail_view.v1",
+  "appid": "com.sale.quote.center",
+  "focus_event_id": "VOICE-900123",
+  "correlation_level": "strong",
+  "correlation_label": "关联较强",
+  "correlation_summary": "最近5分钟内，存在处理中告警、存在用户侧反馈、前序存在变更、已有事件单承接，建议作为同一异常链路继续核对。",
+  "timeline_reasoning": [
+    {
+      "time": "T-4m",
+      "type": "change",
+      "type_label": "变更",
+      "description": "报价规则缓存参数发布",
+      "interpretation": "变更发生在关注信号之前，可作为候选诱因。"
+    },
+    {
+      "time": "T-2m",
+      "type": "alert",
+      "type_label": "告警",
+      "description": "报价中心 P95 延迟连续超过 1000ms",
+      "interpretation": "告警处于处理中，说明结构化监控侧仍未闭环。"
+    },
+    {
+      "time": "T-1m",
+      "type": "sd",
+      "type_label": "SD单",
+      "description": "销售反馈报价单保存后页面长时间无响应，客户现场等待确认金额。",
+      "interpretation": "用户侧描述与性能下降方向一致，可作为影响证据。"
+    },
+    {
+      "time": "T",
+      "type": "voice_feedback",
+      "type_label": "心声舆情",
+      "description": "合同生成成功了，但回到报价单页面特别慢，客户在电话里等着确认金额。",
+      "interpretation": "用户侧描述与性能下降方向一致，可作为影响证据。"
+    },
+    {
+      "time": "T+1m",
+      "type": "event_ticket",
+      "type_label": "事件单",
+      "description": "报价链路响应时间升高，事件单已受理，报价中心和缓存平台联合排查。",
+      "interpretation": "事件单承接处置，需继续关注是否关闭及关闭原因。"
+    }
+  ],
+  "matched_experience_rules": [
+    {
+      "experience_id": "EXP-CHANGE-LATENCY-001",
+      "title": "变更后延迟升高 + 用户侧反馈",
+      "why": "变更、延迟升高、用户反馈在同一时间窗口内出现。"
+    },
+    {
+      "experience_id": "EXP-ALERT-INCIDENT-LINK-001",
+      "title": "告警由事件单承接",
+      "why": "告警仍为处理中，且窗口内存在处理中的事件单。"
+    }
+  ],
+  "llm_semantic_interpretation": {
+    "focus_event_summary": "合同生成成功了，但回到报价单页面特别慢，客户在电话里等着确认金额。",
+    "semantic_event_interpretation": [
+      {
+        "event_id": "VOICE-900123",
+        "event_type": "voice_feedback",
+        "fault_relevance": "high",
+        "user_symptom_or_fact": "合同生成成功了，但回到报价单页面特别慢，客户在电话里等着确认金额。",
+        "semantic_reason": "该描述与当前关注信号在时间窗口内接近，且语义上指向性能下降、用户等待或处置承接。"
+      },
+      {
+        "event_id": "SD-900121",
+        "event_type": "sd",
+        "fault_relevance": "high",
+        "user_symptom_or_fact": "销售反馈报价单保存后页面长时间无响应，客户现场等待确认金额。",
+        "semantic_reason": "该描述与当前关注信号在时间窗口内接近，且语义上指向性能下降、用户等待或处置承接。"
+      },
+      {
+        "event_id": "INC-900125",
+        "event_type": "event_ticket",
+        "fault_relevance": "high",
+        "user_symptom_or_fact": "报价链路响应时间升高，事件单已受理，报价中心和缓存平台联合排查。",
+        "semantic_reason": "该描述与当前关注信号在时间窗口内接近，且语义上指向性能下降、用户等待或处置承接。"
+      },
+      {
+        "event_id": "ALERT-900118",
+        "event_type": "alert",
+        "fault_relevance": "medium",
+        "user_symptom_or_fact": "报价中心 P95 延迟连续超过 1000ms",
+        "semantic_reason": "该描述与当前关注信号在时间窗口内接近，且语义上指向性能下降、用户等待或处置承接。"
+      },
+      {
+        "event_id": "CHG-900101",
+        "event_type": "change",
+        "fault_relevance": "medium",
+        "user_symptom_or_fact": "报价规则缓存参数发布",
+        "semantic_reason": "该描述与当前关注信号在时间窗口内接近，且语义上指向性能下降、用户等待或处置承接。"
+      }
+    ],
+    "llm_note": "当前为本地fallback；真实 AgentScope LLM Agent 应基于此 schema 调用模型识别同义表达、反证和影响范围。"
+  },
+  "missing_inputs": [
+    "cache.quote.rule 实时命中率",
+    "事件单关闭原因"
+  ],
+  "suggested_next_actions": [
+    "查看拓扑传播链",
+    "确认事件单是否仍处理中",
+    "核对变更影响范围"
+  ]
+}
