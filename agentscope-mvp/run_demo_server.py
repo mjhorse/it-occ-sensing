@@ -10,7 +10,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from uvicorn import Config, Server
 
-from detail_agent_server import health, stream_detail_analysis
+from detail_agent_server import health, stream_detail_analysis, copilot_chat
 
 BASE = Path(__file__).parent
 UI_DIR = BASE.parent / "mvp" / "ui-prototype-v4-1"
@@ -29,6 +29,7 @@ routes = [
     Route("/rules.html", rules, methods=["GET"]),
     Route("/health", health, methods=["GET"]),
     Route("/agent/detail-analysis/stream", stream_detail_analysis, methods=["POST"]),
+    Route("/agent/copilot/chat", copilot_chat, methods=["POST"]),
     Mount("/static", app=StaticFiles(directory=UI_DIR), name="static"),
 ]
 

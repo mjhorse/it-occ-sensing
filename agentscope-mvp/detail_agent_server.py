@@ -10,7 +10,7 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from uvicorn import Config, Server
 from starlette.applications import Starlette
@@ -140,6 +140,128 @@ async def stream_llm_refinement(result: Dict[str, Any]):
         yield {"type": "llm_error", "agent": "LLMRefineAgent", "message": f"大模型流式 refine 未完成，已回退结构化输出：{type(exc).__name__}: {exc}"}
 
 
+def _compact_copilot_context(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Keep the chat prompt bounded while preserving operational evidence."""
+    ctx = payload.get("context") or payload
+    focus = ctx.get("focus_event") or {}
+    topology = ctx.get("topology_context") or {}
+    return {
+        "schema_version": ctx.get("schema_version"),
+        "appid": ctx.get("appid"),
+        "app_name": ctx.get("app_name"),
+        "focus_event": focus,
+        "metrics_window": ctx.get("metrics_window"),
+        "discrete_events": (ctx.get("discrete_events") or [])[:20],
+        "topology_context": {
+            "focus_node": topology.get("focus_node"),
+            "related_app_signals": (topology.get("related_app_signals") or [])[:12],
+            "missing_inputs": topology.get("missing_inputs") or [],
+        },
+    }
+
+
+def _copilot_system_prompt(context: Dict[str, Any]) -> str:
+    return (
+        "你是 IT OCC Copilot，一个面向一线运维/SRE的持续对话式预警研判助手。"
+        "你正在围绕同一个 focus event 与用户多轮协作排查。\n"
+        "行为要求：\n"
+        "1. 不要讲模型/Agent/系统内部流程；直接回答运维问题。\n"
+        "2. 每次回答都要尽量引用当前上下文里的时间轴、拓扑、指标、离散事件作为依据。\n"
+        "3. 拓扑语义必须保持：调用方 -> 中心预警 appid；不要反向解释。\n"
+        "4. 如果用户问下一步，给可执行排查顺序；如果问原因，区分已证实、候选假设、缺失证据。\n"
+        "5. 不要编造不存在的指标名、阈值、工单字段；缺失就明确说缺失。\n"
+        "6. 回答要短而实用，默认 3-6 条；必要时用编号。\n\n"
+        "当前预警上下文 JSON：\n" + json.dumps(context, ensure_ascii=False, indent=2)
+    )
+
+
+def _fallback_copilot_reply(question: str, context: Dict[str, Any], history: List[Dict[str, str]]) -> str:
+    app = context.get("app_name") or context.get("appid") or "当前服务"
+    focus = context.get("focus_event") or {}
+    events = context.get("discrete_events") or []
+    metrics = context.get("metrics_window") or {}
+    related = ((context.get("topology_context") or {}).get("related_app_signals") or [])[:5]
+    missing = ((context.get("topology_context") or {}).get("missing_inputs") or [])
+    q = (question or "").strip()
+    event_lines = []
+    for e in events[:6]:
+        event_lines.append(f"- {e.get('event_time','')}｜{e.get('event_type','event')}｜{e.get('description') or e.get('title') or e.get('event_id')}")
+    topo_lines = []
+    for r in related:
+        topo_lines.append(f"- {r.get('app_name') or r.get('appid')} -> {app}：同窗口事件 {len(r.get('events') or [])} 条，P95比例 {((r.get('metrics') or {}).get('p95_latency_ratio') or '缺失')}，错误率比例 {((r.get('metrics') or {}).get('error_rate_ratio') or '缺失')}")
+    if any(k in q for k in ["下一步", "怎么", "排查", "处理", "动作"]):
+        return "\n".join([
+            f"建议先按这条链路排：{app} 当前预警不是单看一个点，而是要把时间轴、拓扑和用户侧反馈合起来。",
+            "1. 先确认中心服务当前指标：P95/错误率/请求量是否仍高于同窗口基线。",
+            "2. 再按拓扑核对调用方 -> 中心服务的入口体验，优先看同窗口也有异常信号的调用方。",
+            "3. 回看 T-10 到 T+10 的离散事件：告警、SD、心声、变更、事件单是否能串成同一条链。",
+            "4. 若事件单已承接，补齐关闭原因/处置进展；若缺少上游调用方实时指标，先不要扩大定责。",
+            ("缺失输入：" + "；".join(missing)) if missing else "缺失输入：暂无明显缺失。",
+        ])
+    if any(k in q for k in ["拓扑", "上游", "调用", "影响"]):
+        return "\n".join([f"拓扑上要按“调用方 -> {app}”理解，也就是这些入口/服务可能被中心预警服务的异常影响：", *(topo_lines or ["- 当前上下文没有强拓扑关联信号。"]), "结论：优先核对这些调用方的用户体验和错误率/时延，不要把它解释成中心服务主动调用它们。"])
+    return "\n".join([
+        f"围绕 {app} 的当前预警，我看到的核心事实是：{focus.get('description') or focus.get('title') or focus.get('event_id') or '当前 focus event'}。",
+        "时间轴证据：", *(event_lines or ["- 当前上下文没有离散事件明细。"]),
+        "指标窗口：" + json.dumps(metrics, ensure_ascii=False),
+        "可继续问我：‘下一步怎么排查’、‘拓扑上先看谁’、‘哪些证据支持/反证这个判断’。",
+    ])
+
+
+async def copilot_chat(request: Request):
+    payload = await request.json() if request.headers.get("content-length") not in [None, "0"] else {}
+    question = (payload.get("message") or "").strip()
+    history = payload.get("history") or []
+    context = _compact_copilot_context(payload)
+    if not question:
+        return JSONResponse({"ok": False, "error": "message is required"}, status_code=400)
+    cfg = _model_config()
+    if not cfg["has_anthropic_api_key"]:
+        return JSONResponse({
+            "ok": True,
+            "mode": "local_fallback",
+            "agent": "IT_OCC_CopilotAgent",
+            "message": _fallback_copilot_reply(question, context, history),
+            "model_config": cfg,
+        })
+    try:
+        base_url = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com").rstrip("/")
+        messages = []
+        for h in history[-12:]:
+            role = h.get("role") if h.get("role") in ["user", "assistant"] else "user"
+            content = str(h.get("content") or "")[:2000]
+            if content:
+                messages.append({"role": role, "content": content})
+        messages.append({"role": "user", "content": question})
+        api_payload = {
+            "model": cfg["effective_model"],
+            "max_tokens": 900,
+            "temperature": 0.2,
+            "system": _copilot_system_prompt(context),
+            "messages": messages,
+        }
+        headers = {
+            "content-type": "application/json",
+            "anthropic-version": "2023-06-01",
+            "x-api-key": os.environ["ANTHROPIC_API_KEY"],
+        }
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(f"{base_url}/v1/messages", json=api_payload, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+        text = "".join(block.get("text", "") for block in data.get("content", []) if block.get("type") == "text")
+        return JSONResponse({"ok": True, "mode": "anthropic", "agent": "IT_OCC_CopilotAgent", "message": text, "model_config": cfg})
+    except Exception as exc:
+        return JSONResponse({
+            "ok": True,
+            "mode": "error_fallback",
+            "agent": "IT_OCC_CopilotAgent",
+            "message": _fallback_copilot_reply(question, context, history),
+            "warning": f"LLM call failed, used fallback: {type(exc).__name__}: {exc}",
+            "model_config": cfg,
+        })
+
+
 async def stream_detail_analysis(request: Request):
     payload = await request.json() if request.headers.get("content-length") not in [None, "0"] else {}
 
@@ -175,6 +297,7 @@ async def stream_detail_analysis(request: Request):
 app = Starlette(routes=[
     Route("/health", health, methods=["GET"]),
     Route("/agent/detail-analysis/stream", stream_detail_analysis, methods=["POST"]),
+    Route("/agent/copilot/chat", copilot_chat, methods=["POST"]),
 ])
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
