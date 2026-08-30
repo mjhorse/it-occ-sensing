@@ -2,8 +2,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# Prefer UModel/OModel topology when a local UModel service is running.
-# The analysis pipeline still falls back to SQLite/dynamic topology if UModel is unavailable.
+# UModel/OModel is the single topology source. If UModel is unavailable,
+# the analysis pipeline must fail fast instead of falling back to SQLite or
+# browser-generated topology.
 export TOPOLOGY_PROVIDER="${TOPOLOGY_PROVIDER:-umodel}"
 export UMODEL_ADDR="${UMODEL_ADDR:-http://localhost:18080}"
 export UMODEL_WORKSPACE="${UMODEL_WORKSPACE:-itocc-demo}"

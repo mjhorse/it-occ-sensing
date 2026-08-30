@@ -4,6 +4,7 @@ import mimetypes
 import os
 import json
 import time
+import shutil
 from pathlib import Path
 
 
@@ -42,6 +43,9 @@ from detail_agent_server import health, stream_detail_analysis, copilot_chat
 BASE = Path(__file__).parent
 UI_DIR = BASE.parent / "mvp" / "ui-prototype-v4-1"
 SIM_STATE_FILE = BASE / "runtime" / "simulation-state-v4.json"
+SIM_STATE_BACKUP_DIR = BASE / "runtime" / "simulation-state-history"
+SUPPORTED_SIM_SCHEMA_PREFIX = "it_occ_sensing_server_simulation_state.v"
+CURRENT_SIM_SCHEMA_VERSION = "it_occ_sensing_server_simulation_state.v1"
 
 NO_CACHE_HEADERS = {"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0", "Pragma": "no-cache", "Expires": "0"}
 
@@ -50,6 +54,36 @@ async def index(request):
 
 async def rules(request):
     return FileResponse(UI_DIR / "rules.html", headers=NO_CACHE_HEADERS)
+
+
+def _validate_simulation_state(state: dict) -> tuple[bool, str]:
+    if not isinstance(state, dict):
+        return False, "state must be object"
+    schema = str(state.get("schema_version") or "")
+    if not schema.startswith(SUPPORTED_SIM_SCHEMA_PREFIX):
+        return False, f"unsupported schema_version {schema!r}; use backend migration, never frontend regeneration"
+    payload = state.get("payload")
+    if not isinstance(payload, dict):
+        return False, "payload must be object"
+    if not isinstance(payload.get("appids"), list) or not isinstance(payload.get("data"), dict):
+        return False, "payload must contain appids[] and data{}"
+    for appid in payload.get("appids"):
+        item = payload.get("data", {}).get(appid)
+        if not isinstance(item, dict):
+            return False, f"missing data for appid {appid}"
+        app = item.get("app") or {}
+        if app.get("appid") and app.get("appid") != appid:
+            return False, f"appid mismatch for {appid}"
+    return True, "ok"
+
+
+def _backup_existing_state(reason: str = "before-write") -> None:
+    if not SIM_STATE_FILE.exists():
+        return
+    SIM_STATE_BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    ts = time.strftime("%Y%m%d-%H%M%S")
+    target = SIM_STATE_BACKUP_DIR / f"simulation-state-v4.{ts}.{reason}.json"
+    shutil.copy2(SIM_STATE_FILE, target)
 
 async def simulation_state(request):
     SIM_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -61,21 +95,25 @@ async def simulation_state(request):
         except Exception as exc:
             return JSONResponse({"ok": False, "reason": f"failed to read simulation state: {exc}"}, status_code=500, headers=NO_CACHE_HEADERS)
     if request.method == "DELETE":
-        try:
-            if SIM_STATE_FILE.exists():
-                SIM_STATE_FILE.unlink()
-            return JSONResponse({"ok": True, "deleted": True}, headers=NO_CACHE_HEADERS)
-        except Exception as exc:
-            return JSONResponse({"ok": False, "reason": f"failed to delete simulation state: {exc}"}, status_code=500, headers=NO_CACHE_HEADERS)
+        return JSONResponse({
+            "ok": False,
+            "reason": "frontend/API deletion is disabled: generated history is immutable; use an explicit backend versioned migration instead",
+        }, status_code=405, headers=NO_CACHE_HEADERS)
     try:
         payload = await request.json()
-        if not isinstance(payload, dict) or not isinstance(payload.get("payload"), dict):
+        if not isinstance(payload, dict):
             return JSONResponse({"ok": False, "reason": "invalid simulation state"}, status_code=400, headers=NO_CACHE_HEADERS)
+        ok, reason = _validate_simulation_state(payload)
+        if not ok:
+            return JSONResponse({"ok": False, "reason": reason}, status_code=400, headers=NO_CACHE_HEADERS)
+        _backup_existing_state("before-api-put")
+        payload.setdefault("schema_version", CURRENT_SIM_SCHEMA_VERSION)
         payload["server_saved_at"] = int(time.time() * 1000)
+        payload["immutability_policy"] = "append-or-version-migrate-only; do not rewrite generated historical facts from the frontend"
         tmp = SIM_STATE_FILE.with_suffix(".json.tmp")
         tmp.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
         tmp.replace(SIM_STATE_FILE)
-        return JSONResponse({"ok": True, "savedAt": payload["server_saved_at"]}, headers=NO_CACHE_HEADERS)
+        return JSONResponse({"ok": True, "savedAt": payload["server_saved_at"], "schema_version": payload.get("schema_version")}, headers=NO_CACHE_HEADERS)
     except Exception as exc:
         return JSONResponse({"ok": False, "reason": f"failed to save simulation state: {exc}"}, status_code=500, headers=NO_CACHE_HEADERS)
 

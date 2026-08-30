@@ -12,7 +12,7 @@
 - `umodel/sample-data/relations.json`：由 `app_edges` 生成的 UModel relations。
 - `umodel/sample-data/appid_entity_id_map.json`：稳定的 `appid -> __entity_id__` 映射。
 - `umodel_topology_provider.py`：通过 UModel Query Service `.topo` 查询入向/出向关系。
-- `graph_analysis.py`：新增 `TOPOLOGY_PROVIDER=umodel` 切换；UModel 不可用时自动回退 SQLite/dynamic fallback。
+- `graph_analysis.py`：强制 `TOPOLOGY_PROVIDER=umodel`；UModel 不可用、workspace 未导入、或 appid 不存在时 fail-fast，不允许回退 SQLite/dynamic fallback。
 
 ## 关系方向约定
 
@@ -97,19 +97,31 @@ python3 detail_analysis_pipeline.py \
 基于UModel拓扑识别 4 个关联 appid。
 ```
 
-## 回退行为
+## 单一数据源与失败行为
 
-如果设置了：
+拓扑数据的唯一事实源是 UModel 持久化 workspace。后续不允许：
 
-```text
-TOPOLOGY_PROVIDER=umodel
-```
+- 前端按当前 `PAYLOAD` 即时生成拓扑边；
+- 后端在 UModel 不可用时回退 SQLite；
+- appid 不存在时按命名规则动态造 `*.web`、`*.mobile`、`*.cache` 等节点；
+- 把同窗口指标/event 相关性伪装成调用拓扑。
 
-但 UModel 服务不可用、workspace 未导入、或 appid 不存在，`graph_analysis.py` 会自动回退到原 SQLite/dynamic 逻辑，并在 graph 中写入：
+如果 UModel 服务不可用、workspace 未导入、或 appid 不存在，`graph_analysis.py` 必须直接报错。页面和 Agent 只能显示“UModel 拓扑不可用/数据缺失”，不能生成第二套拓扑。
 
-```text
-graph_store_fallback_reason
-requested_graph_store=umodel
-```
+## 模拟数据持久化原则
 
-这样 demo 不会因为 UModel 未启动而直接失败。
+IT OCC 模拟数据必须是一套可版本化、可审计、不可被前端刷新改写的持久化数据集。
+
+要求：
+
+- 生成发生在后端/构建步骤，输出带 `dataset_id`、`schema_version`、`generated_at`、`generator_version`。
+- 前端只读取已生成 dataset，不在浏览器刷新时重算历史 series/events/topology。
+- 已发布的历史 dataset 只追加新版本，不原地修改；如果模型或 schema 变化，用兼容读取或显式 migration 产出新 dataset 版本。
+- 所有页面，包括时间轴、Agent 详情、Copilot、拓扑图，都基于同一个 dataset + UModel workspace 查询，只是建模视角不同。
+
+## 2026-08-30 强化约束
+
+- `/api/simulation/state` 是当前 UI 的模拟数据入口；GET 读取后端持久化快照，PUT 仅接受带兼容 `schema_version` 的完整后端状态，并在覆盖前写入 `runtime/simulation-state-history/` 备份；DELETE 已禁用。
+- `mvp/ui-prototype-v4-1/index.html` 已改为只读后端快照：不再 `seedRecentData`、不再 `appendSimulatedData` 推进时间、不再通过 IndexedDB/file 模式兜底生成、不再用页面选择变化写回历史。
+- “持续刷新”按钮改为“重新读取持久化数据”，语义是重新 GET 后端快照，不产生新点位或新事件。
+- 历史数据不可由前端清理或按新规则重算；如旧数据与规则/模型不兼容，必须由后端 migration 生成新 `schema_version`/dataset，并保留旧版本备份。

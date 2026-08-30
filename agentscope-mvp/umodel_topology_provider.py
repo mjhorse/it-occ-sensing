@@ -2,10 +2,9 @@
 """UModel-backed topology provider for IT OCC AgentScope MVP.
 
 The provider preserves the existing graph_analysis.py output contract while
-reading topology facts from UModel Query Service instead of the local SQLite
-mock graph. It is intentionally small and demo-friendly: when UModel is not
-reachable or the appid is not imported yet, graph_analysis.py can keep using
-its SQLite/dynamic fallback.
+reading topology facts from UModel Query Service. UModel is the single topology
+source of truth for this MVP: callers must fail fast when UModel is unavailable
+or an appid is missing. Do not add SQLite/dynamic fallback here.
 """
 import hashlib
 import json

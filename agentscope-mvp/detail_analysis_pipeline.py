@@ -108,7 +108,7 @@ class LLMInterpretationAgent:
         req = state["request_obj"]
         focus = req["focus_event"]
         related = state["related_events"]
-        # MVP fallback: generate the same structured output a real LLM agent should produce.
+        # Deterministic semantic pass for demo mode; it preserves the schema without pretending to be an LLM.
         interpretations = []
         for e in related:
             text = e.get("description", "")
@@ -123,7 +123,7 @@ class LLMInterpretationAgent:
         state["llm_interpretation"] = {
             "focus_event_summary": focus.get("description"),
             "semantic_event_interpretation": interpretations,
-            "llm_note": "当前为本地fallback；真实 AgentScope LLM Agent 应基于此 schema 调用模型识别同义表达、反证和影响范围。",
+            "llm_note": "当前为规则化语义整理；真实 AgentScope LLM Agent 可基于此 schema 进一步识别同义表达、反证和影响范围。",
         }
         return DetailStageResult(self.name, "ok", f"完成 {len(interpretations)} 个离散event的语义解释。")
 
@@ -232,21 +232,18 @@ class TopologyDependencyAgent:
     def run(self, state: Dict[str, Any]) -> DetailStageResult:
         req = state["request_obj"]
         appid = req.get("appid")
-        if (req.get("topology_context") or {}).get("related_app_signals"):
-            result = appid_level_impact_reasoning(req, state.get("related_events", []), state.get("current_metrics", {}))
-        else:
-            result = topology_reasoning(appid, state.get("related_events", []), state.get("current_metrics", {}), app_name=req.get("app_name"))
-            result = attach_topology_node_events(result, state.get("related_events", []), appid)
+        # Topology is UModel-only.  UI-provided same-window related_app_signals
+        # may be used as non-topology evidence elsewhere, but must never become
+        # topology edges.  If UModel is unavailable or the appid is missing, fail
+        # fast instead of synthesizing a second graph.
+        result = topology_reasoning(appid, state.get("related_events", []), state.get("current_metrics", {}), app_name=req.get("app_name"))
+        result = attach_topology_node_events(result, state.get("related_events", []), appid)
         state["topology_dependency_analysis"] = result
         graph_store = (result.get("graph") or {}).get("graph_store", "")
-        if graph_store == "ui_payload_related_app_signals":
-            source = "页面传入的 appid 级指标/event"
-        elif str(graph_store).startswith("umodel:"):
+        if str(graph_store).startswith("umodel:"):
             source = "UModel拓扑"
-        elif graph_store == "dynamic_from_warning_appid":
-            source = "当前预警 appid 动态兜底拓扑"
         else:
-            source = "本地图数据库"
+            raise RuntimeError(f"TopologyDependencyAgent rejected non-UModel graph_store: {graph_store}")
         return DetailStageResult(self.name, "ok", f"基于{source}识别 {len(result.get('suspected_inbound_callers') or result.get('suspected_dependency_paths', []))} 个关联 appid。")
 
 

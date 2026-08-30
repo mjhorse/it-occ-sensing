@@ -50,8 +50,8 @@ async def health(request: Request):
         "ok": True,
         "model_config": _model_config(),
         "topology_config": {
-            "provider": os.environ.get("TOPOLOGY_PROVIDER", "sqlite"),
-            "umodel_addr": os.environ.get("UMODEL_ADDR", "http://localhost:8080"),
+            "provider": os.environ.get("TOPOLOGY_PROVIDER", "umodel"),
+            "umodel_addr": os.environ.get("UMODEL_ADDR", "http://localhost:18080"),
             "umodel_workspace": os.environ.get("UMODEL_WORKSPACE", "itocc-demo"),
         },
     })
@@ -467,8 +467,8 @@ async def stream_detail_analysis(request: Request):
         await asyncio.sleep(0.12)
         yield json.dumps({"type": "agent_delta", "agent": "ContextCollectorAgent", "message": "收集 focus event、最近窗口离散event，并查询最近几天同时间段基线。"}, ensure_ascii=False) + "\n"
         await asyncio.sleep(0.12)
-        topo_provider = os.environ.get("TOPOLOGY_PROVIDER", "sqlite").strip().lower()
-        topo_msg = "连接 UModel .topo 拓扑服务，查询调用方 → 中心预警 appid 与下游依赖。" if topo_provider == "umodel" else "连接本地 SQLite 图数据库，查询 appid 依赖路径和疑似传播链。"
+        topo_provider = os.environ.get("TOPOLOGY_PROVIDER", "umodel").strip().lower()
+        topo_msg = "连接 UModel .topo 拓扑服务，查询调用方 → 中心预警 appid 与下游依赖；UModel 不可用时直接失败，不使用本地 fallback。"
         yield json.dumps({"type": "agent_delta", "agent": "TopologyDependencyAgent", "message": topo_msg}, ensure_ascii=False) + "\n"
         await asyncio.sleep(0.12)
         req_path = _write_tmp_request(payload)
