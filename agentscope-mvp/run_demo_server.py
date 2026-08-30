@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Unified demo server: serves UI prototype and Agent streaming API from one origin."""
 import mimetypes
+import asyncio
 import os
 import json
 import time
@@ -34,11 +35,13 @@ load_local_env()
 from starlette.applications import Starlette
 from starlette.responses import FileResponse, Response, JSONResponse
 from starlette.routing import Mount, Route
+from contextlib import asynccontextmanager
 from starlette.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from uvicorn import Config, Server
 
 from detail_agent_server import health, stream_detail_analysis, copilot_chat
+from simulation_agents import RUNTIME, agent_loop, runtime_status, tick_once, load_state, atomic_write_state, apply_user_directive
 
 BASE = Path(__file__).parent
 UI_DIR = BASE.parent / "mvp" / "ui-prototype-v4-1"
@@ -118,18 +121,89 @@ async def simulation_state(request):
         return JSONResponse({"ok": False, "reason": f"failed to save simulation state: {exc}"}, status_code=500, headers=NO_CACHE_HEADERS)
 
 
+async def simulation_agent_status(request):
+    return JSONResponse(runtime_status(), headers=NO_CACHE_HEADERS)
+
+
+async def simulation_agent_control(request):
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    action = str(payload.get("action") or "status")
+    if action == "start":
+        RUNTIME.running = True
+        RUNTIME.tick_sec = max(0.5, float(payload.get("tick_sec") or RUNTIME.tick_sec or 1))
+        RUNTIME.speed = max(1, int(payload.get("speed") or RUNTIME.speed or 1))
+        RUNTIME.last_summary = "SimulationDataAgent / WarningCalculationAgent 已启动"
+    elif action == "pause":
+        RUNTIME.running = False
+        RUNTIME.last_summary = "SimulationDataAgent / WarningCalculationAgent 已暂停"
+    elif action == "tick":
+        async with RUNTIME.lock:
+            state = load_state()
+            result = tick_once(state, int(payload.get("seconds") or RUNTIME.speed or 1))
+            atomic_write_state(state)
+        return JSONResponse({"ok": True, "result": result, "status": runtime_status()}, headers=NO_CACHE_HEADERS)
+    else:
+        return JSONResponse({"ok": action == "status", "status": runtime_status()}, headers=NO_CACHE_HEADERS)
+    return JSONResponse({"ok": True, "status": runtime_status()}, headers=NO_CACHE_HEADERS)
+
+
+async def simulation_agent_chat(request):
+    try:
+        payload = await request.json()
+        message = str(payload.get("message") or "").strip()
+        if not message:
+            return JSONResponse({"ok": False, "reason": "message required"}, status_code=400, headers=NO_CACHE_HEADERS)
+        result = await apply_user_directive(message, payload.get("appid"))
+        if not RUNTIME.running:
+            RUNTIME.running = True
+        return JSONResponse({**result, "status": runtime_status()}, headers=NO_CACHE_HEADERS)
+    except Exception as exc:
+        return JSONResponse({"ok": False, "reason": f"simulation agent chat failed: {type(exc).__name__}: {exc}"}, status_code=500, headers=NO_CACHE_HEADERS)
+
+
+async def topology_agent_status(request):
+    return JSONResponse({
+        "ok": True,
+        "agent": "TopologyManagementAgent",
+        "policy": "UModel is the topology source of truth; topology edits must update UModel, not browser-local fallback.",
+        "umodel_addr": os.environ.get("UMODEL_ADDR", "http://localhost:18080"),
+        "umodel_workspace": os.environ.get("UMODEL_WORKSPACE", "itocc-demo"),
+    }, headers=NO_CACHE_HEADERS)
+
+
 routes = [
     Route("/", index, methods=["GET"]),
     Route("/index.html", index, methods=["GET"]),
     Route("/rules.html", rules, methods=["GET"]),
     Route("/health", health, methods=["GET"]),
     Route("/api/simulation/state", simulation_state, methods=["GET", "PUT", "DELETE"]),
+    Route("/api/simulation-agent/status", simulation_agent_status, methods=["GET"]),
+    Route("/api/simulation-agent/control", simulation_agent_control, methods=["POST"]),
+    Route("/api/simulation-agent/chat", simulation_agent_chat, methods=["POST"]),
+    Route("/api/topology-agent/status", topology_agent_status, methods=["GET"]),
     Route("/agent/detail-analysis/stream", stream_detail_analysis, methods=["POST"]),
     Route("/agent/copilot/chat", copilot_chat, methods=["POST"]),
     Mount("/static", app=StaticFiles(directory=UI_DIR), name="static"),
 ]
 
-app = Starlette(routes=routes)
+@asynccontextmanager
+async def lifespan(app):
+    # Backend agents own runtime writes. Start them automatically so the
+    # persisted simulation state keeps moving even when the browser is read-only.
+    RUNTIME.running = os.environ.get("SIMULATION_AGENTS_AUTOSTART", "1") != "0"
+    if RUNTIME.running:
+        RUNTIME.last_summary = "SimulationDataAgent / WarningCalculationAgent 已自动启动"
+    task = asyncio.create_task(agent_loop())
+    try:
+        yield
+    finally:
+        task.cancel()
+
+
+app = Starlette(routes=routes, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
