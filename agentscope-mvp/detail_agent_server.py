@@ -38,7 +38,7 @@ def _model_config() -> Dict[str, Any]:
         "provider": "anthropic",
         "model_alias_from_claude_code": "opusplan",
         "effective_model": model,
-        "effective_mode": "anthropic_stream_if_key_available_else_local_fallback",
+        "effective_mode": "anthropic_required_no_answer_fallback",
         "has_anthropic_api_key": bool(os.environ.get("ANTHROPIC_API_KEY")),
         "has_anthropic_base_url": bool(os.environ.get("ANTHROPIC_BASE_URL")),
     }
@@ -161,10 +161,44 @@ def _compact_copilot_context(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _select_context_for_question(question: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    """Question-aware context packaging for the LLM.
+
+    The browser owns the live simulated PAYLOAD, so it sends a bounded evidence
+    bundle. The backend agent decides which parts to emphasize for the question
+    instead of exposing fixed canned intents to the user.
+    """
+    q = question or ""
+    selected = {
+        "appid": context.get("appid"),
+        "app_name": context.get("app_name"),
+        "focus_event": context.get("focus_event"),
+        "user_question": q,
+        "available_context": {
+            "metrics_window": context.get("metrics_window"),
+            "metric_around_window": context.get("metric_around_window"),
+            "discrete_events": context.get("discrete_events"),
+            "topology_context": context.get("topology_context"),
+        },
+        "agent_context_selection": [],
+    }
+    if any(k in q for k in ["访问量", "请求量", "流量", "request", "指标", "P95", "p95", "时延", "延迟", "错误率", "失败率"]):
+        selected["agent_context_selection"].append("优先使用 metric_around_window 的 before/after/change 计算事件前后指标变化")
+    if any(k in q for k in ["前后", "分钟", "时间", "之前", "之后", "发生", "过程"]):
+        selected["agent_context_selection"].append("优先使用 focus_event.event_time 和 discrete_events 按时间轴解释")
+    if any(k in q for k in ["拓扑", "调用", "上游", "下游", "影响", "链路", "依赖"]):
+        selected["agent_context_selection"].append("优先使用 topology_context，并保持调用方 -> 中心预警 appid 的方向")
+    if any(k in q for k in ["原因", "根因", "为什么", "判断", "依据", "证据"]):
+        selected["agent_context_selection"].append("区分已证实证据、候选假设、缺失证据，不要编造")
+    if not selected["agent_context_selection"]:
+        selected["agent_context_selection"].append("按用户问题从全部可用上下文中选择相关证据；不要套用固定问题模板")
+    return selected
+
+
 def _copilot_system_prompt(context: Dict[str, Any]) -> str:
     return (
         "你是 IT OCC Copilot，一个面向一线运维/SRE的持续对话式预警研判助手。"
-        "你正在围绕同一个 focus event 与用户多轮协作排查。\n"
+        "用户可以输入任意问题，你必须根据问题从已提供上下文中选择相关证据回答；不要只回答固定几个预设问题。\n"
         "行为要求：\n"
         "1. 不要讲模型/Agent/系统内部流程；直接回答运维问题。\n"
         "2. 每次回答都要尽量引用当前上下文里的时间轴、拓扑、指标、离散事件作为依据。\n"
@@ -263,12 +297,12 @@ async def copilot_chat(request: Request):
     cfg = _model_config()
     if not cfg["has_anthropic_api_key"]:
         return JSONResponse({
-            "ok": True,
-            "mode": "local_fallback",
+            "ok": False,
+            "mode": "model_unavailable",
             "agent": "IT_OCC_CopilotAgent",
-            "message": _fallback_copilot_reply(question, context, history),
+            "error": "未检测到 ANTHROPIC_API_KEY，Copilot 不使用本地 fallback 伪装回答；请启动带 .env.local 的 demo server。",
             "model_config": cfg,
-        })
+        }, status_code=503)
     try:
         base_url = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com").rstrip("/")
         messages = []
@@ -282,7 +316,7 @@ async def copilot_chat(request: Request):
             "model": cfg["effective_model"],
             "max_tokens": 900,
             "temperature": 0.2,
-            "system": _copilot_system_prompt(context),
+            "system": _copilot_system_prompt(_select_context_for_question(question, context)),
             "messages": messages,
         }
         headers = {
@@ -298,13 +332,12 @@ async def copilot_chat(request: Request):
         return JSONResponse({"ok": True, "mode": "anthropic", "agent": "IT_OCC_CopilotAgent", "message": text, "model_config": cfg})
     except Exception as exc:
         return JSONResponse({
-            "ok": True,
-            "mode": "error_fallback",
+            "ok": False,
+            "mode": "model_error",
             "agent": "IT_OCC_CopilotAgent",
-            "message": _fallback_copilot_reply(question, context, history),
-            "warning": f"LLM call failed, used fallback: {type(exc).__name__}: {exc}",
+            "error": f"大模型调用失败，Copilot 不使用 fallback 伪装回答：{type(exc).__name__}: {exc}",
             "model_config": cfg,
-        })
+        }, status_code=502)
 
 
 async def stream_detail_analysis(request: Request):
