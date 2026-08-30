@@ -151,6 +151,7 @@ def _compact_copilot_context(payload: Dict[str, Any]) -> Dict[str, Any]:
         "app_name": ctx.get("app_name"),
         "focus_event": focus,
         "metrics_window": ctx.get("metrics_window"),
+        "metric_around_window": ctx.get("metric_around_window"),
         "discrete_events": (ctx.get("discrete_events") or [])[:20],
         "topology_context": {
             "focus_node": topology.get("focus_node"),
@@ -170,9 +171,50 @@ def _copilot_system_prompt(context: Dict[str, Any]) -> str:
         "3. 拓扑语义必须保持：调用方 -> 中心预警 appid；不要反向解释。\n"
         "4. 如果用户问下一步，给可执行排查顺序；如果问原因，区分已证实、候选假设、缺失证据。\n"
         "5. 不要编造不存在的指标名、阈值、工单字段；缺失就明确说缺失。\n"
-        "6. 回答要短而实用，默认 3-6 条；必要时用编号。\n\n"
+        "6. 如果用户问访问量/请求量/流量/指标在事件前后几分钟的变化，必须优先读取 metric_around_window 中对应指标的 before/after/change，不要返回通用事件摘要。\n"
+        "7. 回答要短而实用，默认 3-6 条；必要时用编号。\n\n"
         "当前预警上下文 JSON：\n" + json.dumps(context, ensure_ascii=False, indent=2)
     )
+
+
+def _format_metric_change(metric_name: str, metric: Dict[str, Any], label: str) -> str:
+    before = metric.get("before") or {}
+    after = metric.get("after") or {}
+    change = metric.get("change") or {}
+    if before.get("avg") is None or after.get("avg") is None:
+        return f"{label}：事件前后 5 分钟数据不足，无法计算变化。"
+    pct = change.get("delta_pct")
+    pct_text = f"（{pct:+.1f}%）" if isinstance(pct, (int, float)) else ""
+    unit = "次/采样点" if metric_name == "request_count" else ""
+    return (
+        f"{label}：事件前 5 分钟均值 {before.get('avg')}{unit}，事件后 5 分钟均值 {after.get('avg')}{unit}，"
+        f"{change.get('direction', '变化')} {change.get('delta')}{unit}{pct_text}。"
+        f"前窗口范围 {before.get('min')}~{before.get('max')}，后窗口范围 {after.get('min')}~{after.get('max')}，样本数 {before.get('count')}/{after.get('count')}。"
+    )
+
+
+def _metric_question_reply(question: str, context: Dict[str, Any]) -> str | None:
+    q = question or ""
+    around = context.get("metric_around_window") or {}
+    metrics = around.get("metrics") or {}
+    if any(k in q for k in ["访问量", "请求量", "流量", "request", "请求数"]):
+        metric = metrics.get("request_count")
+        if not metric:
+            return "当前上下文没有 request_count 的前后窗口序列，所以不能回答访问量变化；需要前端把事件前后指标点传给 Copilot。"
+        return "\n".join([
+            _format_metric_change("request_count", metric, "用户访问量/请求量"),
+            "解读：如果后 5 分钟均值明显上升，说明事件后流量压力变大，需同时核对容量/限流；如果下降，则可能是用户受影响后放弃访问或入口被降级；如果持平，则更偏向服务处理能力或依赖异常。",
+            "依据：使用当前 focus event 时间点切分 T-5min~T 与 T~T+5min 的 request_count 序列。",
+        ])
+    if any(k in q for k in ["时延", "延迟", "p95", "P95"]):
+        metric = metrics.get("p95_latency_ms")
+        if metric:
+            return _format_metric_change("p95_latency_ms", metric, "P95 时延")
+    if any(k in q for k in ["错误率", "失败率", "error"]):
+        metric = metrics.get("error_rate")
+        if metric:
+            return _format_metric_change("error_rate", metric, "错误率")
+    return None
 
 
 def _fallback_copilot_reply(question: str, context: Dict[str, Any], history: List[Dict[str, str]]) -> str:
@@ -183,6 +225,9 @@ def _fallback_copilot_reply(question: str, context: Dict[str, Any], history: Lis
     related = ((context.get("topology_context") or {}).get("related_app_signals") or [])[:5]
     missing = ((context.get("topology_context") or {}).get("missing_inputs") or [])
     q = (question or "").strip()
+    metric_reply = _metric_question_reply(q, context)
+    if metric_reply:
+        return metric_reply
     event_lines = []
     for e in events[:6]:
         event_lines.append(f"- {e.get('event_time','')}｜{e.get('event_type','event')}｜{e.get('description') or e.get('title') or e.get('event_id')}")
