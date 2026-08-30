@@ -8,6 +8,7 @@ Endpoint:
 import asyncio
 import json
 import os
+import re
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List
@@ -140,13 +141,93 @@ async def stream_llm_refinement(result: Dict[str, Any]):
         yield {"type": "llm_error", "agent": "LLMRefineAgent", "message": f"大模型流式 refine 未完成，已回退结构化输出：{type(exc).__name__}: {exc}"}
 
 
+APPID_RE = re.compile(r"\bcom(?:\.[a-zA-Z0-9_-]+){2,}\b")
+
+
+def _copilot_evidence_facts(ctx: Dict[str, Any]) -> Dict[str, Any]:
+    """Derive deterministic evidence boundaries from the current browser context."""
+    allowed_appids = set()
+    allowed_event_ids = set()
+    focus_appid = ctx.get("appid")
+    if focus_appid:
+        allowed_appids.add(str(focus_appid))
+    focus = ctx.get("focus_event") or {}
+    if focus.get("appid"):
+        allowed_appids.add(str(focus.get("appid")))
+    if focus.get("event_id"):
+        allowed_event_ids.add(str(focus.get("event_id")))
+    for e in ctx.get("discrete_events") or []:
+        if e.get("appid"):
+            allowed_appids.add(str(e.get("appid")))
+        if e.get("event_id"):
+            allowed_event_ids.add(str(e.get("event_id")))
+    topology = ctx.get("topology_context") or {}
+    focus_node = topology.get("focus_node")
+    if isinstance(focus_node, str) and focus_node:
+        allowed_appids.add(focus_node)
+    for sig in topology.get("related_app_signals") or []:
+        if sig.get("appid"):
+            allowed_appids.add(str(sig.get("appid")))
+        for e in sig.get("events") or []:
+            if e.get("appid"):
+                allowed_appids.add(str(e.get("appid")))
+            if e.get("event_id"):
+                allowed_event_ids.add(str(e.get("event_id")))
+    return {
+        "allowed_appids": sorted(allowed_appids),
+        "allowed_event_ids": sorted(allowed_event_ids),
+        "fact_policy": (
+            "Only allowed_appids and allowed_event_ids are current evidence. "
+            "Names appearing only in conversation history or the global app namespace are not evidence. "
+            "If the user mentions an appid that is not allowed, say it is not in the current evidence packet; "
+            "do not use it as a topology node, event source, root cause, or affected service."
+        ),
+    }
+
+
+def _unsupported_appids(text: str, allowed_appids: set[str], question: str = "") -> List[str]:
+    """Return appids used as facts while outside the current evidence allow-list.
+
+    An unsupported appid may still be mentioned to deny evidence (for example
+    "当前拓扑中没有 com.ops.sensing.gw"). It must not be used as a positive
+    node/root-cause/affected-service statement.
+    """
+    out = set()
+    for appid in set(APPID_RE.findall(text or "")):
+        if appid in allowed_appids:
+            continue
+        positions = [m.start() for m in re.finditer(re.escape(appid), text or "")]
+        safe_only = True
+        for pos in positions:
+            left = max(0, pos - 48)
+            right = min(len(text or ""), pos + len(appid) + 48)
+            window = (text or "")[left:right]
+            if not re.search(r"不在|没有|未看到|未出现在|不能证明|不能作为|不可作为|无[^。；\n]*证据|不存在", window):
+                safe_only = False
+                break
+        if not safe_only:
+            out.add(appid)
+    return sorted(out)
+
+
+def _mask_unsupported_appids(text: str, allowed_appids: set[str]) -> str:
+    def repl(match: re.Match) -> str:
+        appid = match.group(0)
+        if appid in allowed_appids:
+            return appid
+        return f"{appid}（非当前证据包appid，历史记录已忽略）"
+    return APPID_RE.sub(repl, text or "")
+
+
 def _compact_copilot_context(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Keep the chat prompt bounded while preserving operational evidence."""
     ctx = payload.get("context") or payload
     focus = ctx.get("focus_event") or {}
     topology = ctx.get("topology_context") or {}
-    return {
+    compact = {
         "schema_version": ctx.get("schema_version"),
+        "data_authenticity_policy": ctx.get("data_authenticity_policy"),
+        "time_display_policy": ctx.get("time_display_policy"),
         "appid": ctx.get("appid"),
         "app_name": ctx.get("app_name"),
         "focus_event": focus,
@@ -159,6 +240,8 @@ def _compact_copilot_context(payload: Dict[str, Any]) -> Dict[str, Any]:
             "missing_inputs": topology.get("missing_inputs") or [],
         },
     }
+    compact["evidence_facts"] = _copilot_evidence_facts(compact)
+    return compact
 
 
 def _select_context_for_question(question: str, context: Dict[str, Any]) -> Dict[str, Any]:
@@ -207,7 +290,10 @@ def _copilot_system_prompt(context: Dict[str, Any]) -> str:
         "5. 不要编造不存在的指标名、阈值、工单字段；缺失就明确说缺失。\n"
         "6. 如果用户问访问量/请求量/流量/指标在事件前后几分钟的变化，必须优先读取 metric_around_window 中对应指标的 before/after/change，不要返回通用事件摘要。\n"
         "7. 上下文里的 event_time 是页面展示时区 Asia/Shanghai（GMT+8）。面向用户回答时必须使用该本地时间，不要转换成 UTC，也不要写 UTC/Z。\n"
-        "8. 回答要短而实用，默认 3-6 条；必要时用编号。\n\n"
+        "8. 事实边界：只能把 evidence_facts.allowed_appids 里的 appid 当作当前拓扑/事件/影响服务证据；只能把 evidence_facts.allowed_event_ids 里的事件ID当作当前证据。\n"
+        "9. 历史对话、用户追问、全局 PAYLOAD.appids 里的服务名都不是当前事件证据；若用户提到但不在 allowed_appids，只能回答‘当前证据包/拓扑中没有它’，不能将其列为关联服务。\n"
+        "10. 每条结论必须能对应到当前 JSON 的 focus_event、discrete_events、metric_around_window 或 topology_context.related_app_signals；没有依据就说缺失。\n"
+        "11. 回答要短而实用，默认 3-6 条；必要时用编号。\n\n"
         "当前预警上下文 JSON：\n" + json.dumps(context, ensure_ascii=False, indent=2)
     )
 
@@ -306,31 +392,59 @@ async def copilot_chat(request: Request):
         }, status_code=503)
     try:
         base_url = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com").rstrip("/")
+        allowed_appids = set((context.get("evidence_facts") or {}).get("allowed_appids") or [])
         messages = []
         for h in history[-12:]:
             role = h.get("role") if h.get("role") in ["user", "assistant"] else "user"
             content = str(h.get("content") or "")[:2000]
+            if role == "assistant":
+                content = _mask_unsupported_appids(content, allowed_appids)
             if content:
                 messages.append({"role": role, "content": content})
         messages.append({"role": "user", "content": question})
-        api_payload = {
-            "model": cfg["effective_model"],
-            "max_tokens": 900,
-            "temperature": 0.2,
-            "system": _copilot_system_prompt(_select_context_for_question(question, context)),
-            "messages": messages,
-        }
+        selected_context = _select_context_for_question(question, context)
+        system_prompt = _copilot_system_prompt(selected_context)
         headers = {
             "content-type": "application/json",
             "anthropic-version": "2023-06-01",
             "x-api-key": os.environ["ANTHROPIC_API_KEY"],
         }
+        text = ""
+        guard_hits: List[str] = []
         async with httpx.AsyncClient(timeout=120.0) as client:
-            resp = await client.post(f"{base_url}/v1/messages", json=api_payload, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-        text = "".join(block.get("text", "") for block in data.get("content", []) if block.get("type") == "text")
-        return JSONResponse({"ok": True, "mode": "anthropic", "agent": "IT_OCC_CopilotAgent", "message": text, "model_config": cfg})
+            attempt_messages = list(messages)
+            for attempt in range(2):
+                api_payload = {
+                    "model": cfg["effective_model"],
+                    "max_tokens": 900,
+                    "temperature": 0.0,
+                    "system": system_prompt,
+                    "messages": attempt_messages,
+                }
+                resp = await client.post(f"{base_url}/v1/messages", json=api_payload, headers=headers)
+                resp.raise_for_status()
+                data = resp.json()
+                text = "".join(block.get("text", "") for block in data.get("content", []) if block.get("type") == "text")
+                guard_hits = _unsupported_appids(text, allowed_appids, question)
+                if not guard_hits:
+                    break
+                attempt_messages = list(messages) + [{
+                    "role": "user",
+                    "content": (
+                        "事实校验拦截：上一版回答引用了当前证据包不存在的服务："
+                        + ", ".join(guard_hits)
+                        + "。请只使用 evidence_facts.allowed_appids / allowed_event_ids 重写；"
+                        + "不在白名单的服务只能说明‘当前证据包没有’，不能作为证据或结论。"
+                    ),
+                }]
+        if guard_hits:
+            text = (
+                "事实校验已拦截：模型回答仍引用了当前证据包不存在的服务："
+                + "、".join(guard_hits)
+                + "。当前回答未采信。请查看页面拓扑或重新提问；Copilot 只允许基于当前事件证据包回答。"
+            )
+            return JSONResponse({"ok": True, "mode": "anthropic_guarded", "agent": "IT_OCC_CopilotAgent", "message": text, "model_config": cfg, "guard_hits": guard_hits})
+        return JSONResponse({"ok": True, "mode": "anthropic", "agent": "IT_OCC_CopilotAgent", "message": text, "model_config": cfg, "evidence_facts": context.get("evidence_facts")})
     except Exception as exc:
         return JSONResponse({
             "ok": False,
