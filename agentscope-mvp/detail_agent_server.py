@@ -72,26 +72,29 @@ class Args:
 
 
 def _llm_prompt(result: Dict[str, Any]) -> str:
+    topology = result.get("topology_dependency_analysis") or {}
     compact = {
         "correlation_summary": result.get("correlation_summary"),
+        "timeline_reasoning": result.get("timeline_reasoning", [])[:8],
         "same_time_baseline_opinion": (result.get("same_time_baseline") or {}).get("opinion"),
-        "topology_view": (result.get("topology_dependency_analysis") or {}).get("topology_view"),
-        "topology_opinion": (result.get("topology_dependency_analysis") or {}).get("topology_opinion"),
-        "suspected_inbound_callers": (result.get("topology_dependency_analysis") or {}).get("suspected_inbound_callers", [])[:6],
-        "downstream_root_cause_clues": (result.get("topology_dependency_analysis") or {}).get("downstream_root_cause_clues", [])[:3],
+        "topology_view": topology.get("topology_view"),
+        "topology_opinion": topology.get("topology_opinion"),
+        "suspected_inbound_callers": topology.get("suspected_inbound_callers", [])[:6],
+        "downstream_root_cause_clues": topology.get("downstream_root_cause_clues", [])[:3],
         "matched_experience_rules": result.get("matched_experience_rules", []),
         "missing_inputs": result.get("missing_inputs", []),
         "suggested_next_actions": result.get("suggested_next_actions", []),
     }
     return (
-        "你是IT OCC感知判读Agent。请基于以下结构化证据，用中文流式生成面向运维/业务用户的详情解读。\n"
-        "输出必须分段、有逻辑层次，不要写成一整段。请严格按以下小标题输出：\n"
-        "【结论摘要】1-2句说明是否关联、置信度和首要影响。\n"
-        "【关键证据】分点说明同时间段基线、离散event、经验规则命中。\n"
-        "【拓扑影响】必须以“被调用关系”为主语义：调用方 -> 中心预警 appid；说明哪些上游调用方/业务入口可能受到中心 appid 异常影响。不要把图解释成中心 appid 主动调用别人。\n"
-        "【缺失输入】列出仍需补齐的数据；没有则写暂无。\n"
-        "【建议动作】给出可执行的下一步核查/处置动作。\n"
-        "约束：不要编造不存在的事实；每段最多3条；保持结构化表达。\n\n"
+        "你是面向一线运维/SRE的IT OCC预警研判助手。请不要讲系统内部如何推理、不要说‘我作为Agent’。"
+        "你的目标是把排查结果、证据依据和下一步动作讲清楚，并且必须和页面上方的‘时间轴 × 拓扑 × 假设验证DAG’一一对应。\n"
+        "输出必须用中文，按以下小标题：\n"
+        "【一、当前该怎么判断】用1-2句给运维结论：是否应继续作为同一异常链路核对、当前置信度/影响面。\n"
+        "【二、沿时间轴看证据】按 T-10min / T / T+10min 说明：先发生什么、当前预警是什么、之后有哪些用户影响或事件承接；只引用输入里存在的事实。\n"
+        "【三、沿拓扑看影响】必须以‘调用方 -> 中心预警 appid’为主语义，说明哪些上游调用方/业务入口需要优先核对；不要把图解释成中心 appid 主动调用别人。\n"
+        "【四、假设与验证结论】用鱼骨图/有向无环图节点的语言表达：假设、证据、验证结论、缺失输入。每条都要能对应页面上方节点。\n"
+        "【五、下一步排查动作】按运维实际操作顺序列出3-5步：先查什么、再查什么、满足什么条件升级/关闭。\n"
+        "约束：不要编造不存在的事实；不要复述系统流程日志；不要讲模型/Agent内部机制；每段最多5条，表达面向值班人员。\n\n"
         + json.dumps(compact, ensure_ascii=False, indent=2)
     )
 
