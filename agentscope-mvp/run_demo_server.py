@@ -1,7 +1,32 @@
 #!/usr/bin/env python3
 """Unified demo server: serves UI prototype and Agent streaming API from one origin."""
 import mimetypes
+import os
 from pathlib import Path
+
+
+def load_local_env():
+    """Load optional local secrets without printing them.
+
+    This keeps the demo working even when it is restarted directly with
+    `python run_demo_server.py` instead of the shell script that sources
+    `.env.local`.
+    """
+    env_file = Path(__file__).parent / ".env.local"
+    if not env_file.exists():
+        return
+    for raw in env_file.read_text(errors="ignore").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+load_local_env()
 
 from starlette.applications import Starlette
 from starlette.responses import FileResponse, Response
