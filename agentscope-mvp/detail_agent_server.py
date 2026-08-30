@@ -206,7 +206,8 @@ def _copilot_system_prompt(context: Dict[str, Any]) -> str:
         "4. 如果用户问下一步，给可执行排查顺序；如果问原因，区分已证实、候选假设、缺失证据。\n"
         "5. 不要编造不存在的指标名、阈值、工单字段；缺失就明确说缺失。\n"
         "6. 如果用户问访问量/请求量/流量/指标在事件前后几分钟的变化，必须优先读取 metric_around_window 中对应指标的 before/after/change，不要返回通用事件摘要。\n"
-        "7. 回答要短而实用，默认 3-6 条；必要时用编号。\n\n"
+        "7. 上下文里的 event_time 是页面展示时区 Asia/Shanghai（GMT+8）。面向用户回答时必须使用该本地时间，不要转换成 UTC，也不要写 UTC/Z。\n"
+        "8. 回答要短而实用，默认 3-6 条；必要时用编号。\n\n"
         "当前预警上下文 JSON：\n" + json.dumps(context, ensure_ascii=False, indent=2)
     )
 
