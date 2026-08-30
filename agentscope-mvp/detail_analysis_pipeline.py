@@ -3,7 +3,7 @@
 import argparse
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List
 from graph_analysis import same_time_baseline, topology_reasoning
@@ -26,11 +26,28 @@ class DetailStageResult:
     summary: str
 
 
-def parse_time(v: str) -> datetime:
-    return datetime.fromisoformat(v.replace("Z", "+00:00"))
+def parse_time(v: Any) -> datetime:
+    """Parse both ISO strings and browser-local zh-CN GMT+8 display strings."""
+    if isinstance(v, (int, float)):
+        return datetime.fromtimestamp(float(v), tz=timezone(timedelta(hours=8))).replace(tzinfo=None)
+    s = str(v or "").strip()
+    if not s:
+        return datetime.fromtimestamp(0, tz=timezone(timedelta(hours=8))).replace(tzinfo=None)
+    if s.endswith(" GMT+8"):
+        s = s[:-6].strip()
+        for fmt in ("%Y/%m/%d %H:%M:%S", "%Y/%m/%d %H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+            try:
+                return datetime.strptime(s, fmt)
+            except ValueError:
+                pass
+    return datetime.fromisoformat(s.replace("Z", "+00:00")).replace(tzinfo=None)
 
 
-def minutes_delta(t: str, focus: str) -> int:
+def event_time_value(event: Dict[str, Any]) -> Any:
+    return event.get("event_time_sec") if event.get("event_time_sec") is not None else event.get("event_time")
+
+
+def minutes_delta(t: Any, focus: Any) -> int:
     return round((parse_time(t) - parse_time(focus)).total_seconds() / 60)
 
 
@@ -44,16 +61,16 @@ class ContextCollectorAgent:
     def run(self, state: Dict[str, Any]) -> DetailStageResult:
         req = load_json(BASE / state["request"])
         state["request_obj"] = req
-        focus_time = req["focus_event"]["event_time"]
+        focus_time = event_time_value(req["focus_event"])
         window = req.get("lookback_window_minutes", 10)
         related = []
         for event in req.get("discrete_events", []):
-            delta = minutes_delta(event["event_time"], focus_time)
+            delta = minutes_delta(event_time_value(event), focus_time)
             if abs(delta) <= window:
                 row = dict(event)
                 row["delta_min"] = delta
                 related.append(row)
-        state["related_events"] = sorted(related, key=lambda x: (abs(x["delta_min"]), x["event_time"]))
+        state["related_events"] = sorted(related, key=lambda x: (abs(x["delta_min"]), event_time_value(x)))
         metrics = req.get("metrics_window", {})
         current_metrics = {
             "p95_latency_ms": metrics.get("p95_latency_ms", {}).get("latest", 0),
@@ -322,7 +339,7 @@ class CorrelationNarratorAgent:
             factors.append("拓扑中存在调用当前预警 appid 的高疑似上游调用方")
         level = "strong" if len(factors) >= 3 else "medium" if factors else "none"
         timeline = []
-        focus_time = req["focus_event"]["event_time"]
+        focus_time = event_time_value(req["focus_event"])
         for e in sorted(related, key=lambda x: x["event_time"]):
             delta = minutes_delta(e["event_time"], focus_time)
             timeline.append({
