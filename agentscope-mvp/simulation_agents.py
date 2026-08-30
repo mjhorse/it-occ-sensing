@@ -291,7 +291,12 @@ def choose_appids(state: dict[str, Any]) -> list[str]:
 def tick_once(state: dict[str, Any], seconds: int | None = None) -> dict[str, Any]:
     payload = state["payload"]
     step = int(seconds or RUNTIME.speed or 1)
-    t = float(payload.get("maxTime") or time.time()) + step
+    # Keep demo simulation time aligned with local wall-clock time.
+    # Never move backwards; if the persisted snapshot lags behind real time,
+    # catch up on the next backend tick instead of drifting from an old seed.
+    wall_now = time.time()
+    prev_time = float(payload.get("maxTime") or wall_now)
+    t = max(prev_time + step, wall_now)
     metric_points = events = warnings = 0
     for appid in choose_appids(state):
         d = app_state(state, appid)
