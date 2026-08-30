@@ -230,7 +230,9 @@ def _compact_copilot_context(payload: Dict[str, Any]) -> Dict[str, Any]:
         "time_display_policy": ctx.get("time_display_policy"),
         "appid": ctx.get("appid"),
         "app_name": ctx.get("app_name"),
+        "selected_time": ctx.get("selected_time"),
         "focus_event": focus,
+        "fusion_rule_snapshot": ctx.get("fusion_rule_snapshot"),
         "metrics_window": ctx.get("metrics_window"),
         "metric_around_window": ctx.get("metric_around_window"),
         "discrete_events": (ctx.get("discrete_events") or [])[:20],
@@ -255,7 +257,9 @@ def _select_context_for_question(question: str, context: Dict[str, Any]) -> Dict
     selected = {
         "appid": context.get("appid"),
         "app_name": context.get("app_name"),
+        "selected_time": context.get("selected_time"),
         "focus_event": context.get("focus_event"),
+        "fusion_rule_snapshot": context.get("fusion_rule_snapshot"),
         "user_question": q,
         "available_context": {
             "metrics_window": context.get("metrics_window"),
@@ -289,7 +293,7 @@ def _copilot_system_prompt(context: Dict[str, Any]) -> str:
         "4. 如果用户问下一步，给可执行排查顺序；如果问原因，区分已证实、候选假设、缺失证据。\n"
         "5. 不要编造不存在的指标名、阈值、工单字段；缺失就明确说缺失。\n"
         "6. 如果用户问访问量/请求量/流量/指标在事件前后几分钟的变化，必须优先读取 metric_around_window 中对应指标的 before/after/change，不要返回通用事件摘要。\n"
-        "7. 上下文里的 event_time 是页面展示时区 Asia/Shanghai（GMT+8）。面向用户回答时必须使用该本地时间，不要转换成 UTC，也不要写 UTC/Z。\n"
+        "7. 上下文里的 event_time 是页面展示时区 Asia/Shanghai（GMT+8）。面向用户回答时必须使用该本地时间，不要换算成其他时区。\n"
         "8. 事实边界：只能把 evidence_facts.allowed_appids 里的 appid 当作当前拓扑/事件/影响服务证据；只能把 evidence_facts.allowed_event_ids 里的事件ID当作当前证据。\n"
         "9. 历史对话、用户追问、全局 PAYLOAD.appids 里的服务名都不是当前事件证据；若用户提到但不在 allowed_appids，只能回答‘当前证据包/拓扑中没有它’，不能将其列为关联服务。\n"
         "10. 每条结论必须能对应到当前 JSON 的 focus_event、discrete_events、metric_around_window 或 topology_context.related_app_signals；没有依据就说缺失。\n"
