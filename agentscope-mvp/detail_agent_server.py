@@ -52,7 +52,7 @@ async def health(request: Request):
         "topology_config": {
             "provider": os.environ.get("TOPOLOGY_PROVIDER", "umodel"),
             "umodel_addr": os.environ.get("UMODEL_ADDR", "http://localhost:18080"),
-            "umodel_workspace": os.environ.get("UMODEL_WORKSPACE", "itocc-demo"),
+            "umodel_workspace": os.environ.get("UMODEL_WORKSPACE", "itocc-current"),
         },
     })
 

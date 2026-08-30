@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 UMODEL_REPO="${UMODEL_REPO:-/Users/mjhorse/unifiedmodel}"
 UMODEL_ADDR="${UMODEL_ADDR:-http://localhost:18080}"
-UMODEL_WORKSPACE="${UMODEL_WORKSPACE:-itocc-demo}"
+UMODEL_WORKSPACE="${UMODEL_WORKSPACE:-itocc-current}"
 
 MODEL_DIR="$SCRIPT_DIR/model"
 DATA_DIR="$SCRIPT_DIR/sample-data"
@@ -21,7 +21,7 @@ python3 "$SCRIPT_DIR/convert_sqlite_graph_to_umodel.py" --out "$DATA_DIR" >/tmp/
 cd "$UMODEL_REPO"
 if ! go run ./cmd/umctl -addr "$UMODEL_ADDR" workspace get "$UMODEL_WORKSPACE" >/tmp/itocc-umodel-workspace.json 2>/tmp/itocc-umodel-workspace.err; then
   go run ./cmd/umctl -addr "$UMODEL_ADDR" workspace create "$UMODEL_WORKSPACE" \
-    "{\"name\":\"IT OCC UModel Demo\",\"description\":\"IT OCC sensing topology demo workspace\"}" \
+    "{\"name\":\"IT OCC Current Runtime Catalog\",\"description\":\"IT OCC topology regenerated from current runtime simulation catalog\"}" \
     >/tmp/itocc-umodel-workspace.json
 fi
 

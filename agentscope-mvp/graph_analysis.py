@@ -58,7 +58,7 @@ def _umodel_dependency_neighborhood(appid: str, max_depth: int = 2, app_name: st
 
     provider = UModelTopologyProvider(
         addr=os.environ.get("UMODEL_ADDR", "http://localhost:18080"),
-        workspace=os.environ.get("UMODEL_WORKSPACE", "itocc-demo"),
+        workspace=os.environ.get("UMODEL_WORKSPACE", "itocc-current"),
     )
     return provider.dependency_neighborhood(appid, max_depth=max_depth, app_name=app_name)
 

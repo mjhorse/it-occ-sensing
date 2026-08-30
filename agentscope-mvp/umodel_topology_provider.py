@@ -16,7 +16,7 @@ from typing import Any, Dict, List
 from graph_analysis import relation_label
 
 DEFAULT_ADDR = os.environ.get("UMODEL_ADDR", "http://localhost:8080")
-DEFAULT_WORKSPACE = os.environ.get("UMODEL_WORKSPACE", "itocc-demo")
+DEFAULT_WORKSPACE = os.environ.get("UMODEL_WORKSPACE", "itocc-current")
 DOMAIN = os.environ.get("UMODEL_ITOCC_DOMAIN", "itocc")
 ENTITY_TYPE = os.environ.get("UMODEL_ITOCC_ENTITY_TYPE", "itocc.app")
 

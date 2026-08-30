@@ -19,7 +19,7 @@ fi
 : "${ANTHROPIC_MODEL:=claude-sonnet-4-6}"
 : "${TOPOLOGY_PROVIDER:=umodel}"
 : "${UMODEL_ADDR:=http://localhost:18080}"
-: "${UMODEL_WORKSPACE:=itocc-demo}"
+: "${UMODEL_WORKSPACE:=itocc-current}"
 export ANTHROPIC_MODEL TOPOLOGY_PROVIDER UMODEL_ADDR UMODEL_WORKSPACE
 nohup .venv/bin/python run_demo_server.py >"$LOG_FILE" 2>&1 &
 echo $! > "$PID_FILE"

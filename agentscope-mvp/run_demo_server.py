@@ -170,7 +170,7 @@ async def topology_agent_status(request):
         "agent": "TopologyManagementAgent",
         "policy": "UModel is the topology source of truth; topology edits must update UModel, not browser-local fallback.",
         "umodel_addr": os.environ.get("UMODEL_ADDR", "http://localhost:18080"),
-        "umodel_workspace": os.environ.get("UMODEL_WORKSPACE", "itocc-demo"),
+        "umodel_workspace": os.environ.get("UMODEL_WORKSPACE", "itocc-current"),
     }, headers=NO_CACHE_HEADERS)
 
 

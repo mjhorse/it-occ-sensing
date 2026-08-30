@@ -7,6 +7,6 @@ cd "$(dirname "$0")"
 # browser-generated topology.
 export TOPOLOGY_PROVIDER="${TOPOLOGY_PROVIDER:-umodel}"
 export UMODEL_ADDR="${UMODEL_ADDR:-http://localhost:18080}"
-export UMODEL_WORKSPACE="${UMODEL_WORKSPACE:-itocc-demo}"
+export UMODEL_WORKSPACE="${UMODEL_WORKSPACE:-itocc-current}"
 
 exec .venv/bin/python run_demo_server.py
